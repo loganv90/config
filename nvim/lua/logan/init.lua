@@ -45,7 +45,7 @@ require("lazy").setup({
 
     {
         'nvim-telescope/telescope.nvim',
-        tag = '0.1.4',
+        tag = '0.1.5',
     },
 
     {
@@ -90,31 +90,47 @@ vim.cmd('colorscheme tokyonight')
 
 
 
-
 local actions = require('telescope.actions')
+local actions_layout = require('telescope.actions.layout')
+local actions_set = require('telescope.actions.set')
 require('telescope').setup({
     defaults = {
         mappings = {
             i = {
+                ['<C-t>'] = function(prompt_bufnr)
+                    actions_layout.cycle_layout_next(prompt_bufnr)
+                end,
                 ['<C-y>'] = function(prompt_bufnr)
-                    for _ = 1, 12 do
-                        actions.move_selection_previous(prompt_bufnr)
-                    end
+                    actions_set.scroll_results(prompt_bufnr, -1)
                 end,
                 ['<C-e>'] = function(prompt_bufnr)
-                    for _ = 1, 12 do
-                        actions.move_selection_next(prompt_bufnr)
-                    end
+                    actions_set.scroll_results(prompt_bufnr, 1)
+                end,
+                ['<Up>'] = function(prompt_bufnr)
+                    actions.cycle_history_prev(prompt_bufnr)
+                end,
+                ['<Down>'] = function(prompt_bufnr)
+                    actions.cycle_history_next(prompt_bufnr)
                 end,
             },
         },
-        layout_strategy = 'horizontal',
+        layout_strategy = 'vertical',
+        cycle_layout_list = {
+            'horizontal',
+            'vertical',
+        },
         layout_config = {
             horizontal = {
-                width = 0.9,
-                height = 0.9,
+                width = 0.8,
+                height = 0.95,
                 preview_width = 0.5,
                 preview_cutoff = 120,
+            },
+            vertical = {
+                width = 0.8,
+                height = 0.95,
+                preview_height = 0.5,
+                preview_cutoff = 40,
             },
         },
         path_display = {
@@ -132,6 +148,8 @@ vim.keymap.set('n', '<leader>sk', builtin.keymaps, {})
 vim.keymap.set('n', '<leader>sd', builtin.diagnostics, {})
 vim.keymap.set('n', '<leader>ss', builtin.git_status, {})
 vim.keymap.set('n', '<leader>sm', builtin.marks, {})
+vim.keymap.set('v', '<leader>sf', 'y<ESC>:Telescope find_files default_text=<C-r>0<CR>', {})
+vim.keymap.set('v', '<leader>sg', 'y<ESC>:Telescope live_grep default_text=<C-r>0<CR>', {})
 
 
 
