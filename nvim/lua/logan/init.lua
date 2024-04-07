@@ -12,7 +12,7 @@ vim.opt.breakindent = true
 vim.opt.incsearch = true
 vim.opt.hlsearch = true
 
-vim.opt.scrolloff = 8
+vim.opt.scrolloff = 4
 vim.opt.termguicolors = true
 vim.opt.signcolumn = 'yes'
 vim.opt.updatetime = 80
@@ -42,6 +42,7 @@ require("lazy").setup({
     { 'folke/neodev.nvim' },
 
     { 'nvim-lua/plenary.nvim' },
+    { 'nvim-neotest/nvim-nio' },
 
     {
         'nvim-telescope/telescope.nvim',
@@ -305,12 +306,32 @@ vim.keymap.set('n', '<leader>ds', dap.step_over, {})
 vim.keymap.set('n', '<leader>di', dap.step_into, {})
 vim.keymap.set('n', '<leader>do', dap.step_out, {})
 vim.keymap.set('n', '<leader>db', dap.toggle_breakpoint, {})
-vim.keymap.set('n', '<leader>dr', dap.run_to_cursor, {})
+vim.keymap.set('n', '<leader>dt', dap.run_to_cursor, {})
 vim.keymap.set('n', '<leader>de', dap.terminate, {})
 vim.keymap.set('n', '<leader>dl', dap.run_last, {})
 vim.keymap.set('n', '<leader>du', dap.up, {})
 vim.keymap.set('n', '<leader>dd', dap.down, {})
-vim.keymap.set('n', '<leader>dt', function() dapui.toggle( { reset = true } ) end, {})
+vim.keymap.set('n', '<leader>dr',
+    function()
+        dapui.close( { layout = 2 } )
+        dapui.close( { layout = 3 } )
+        dapui.toggle( { layout = 1, reset = true } )
+    end, {}
+)
+vim.keymap.set('n', '<leader>df',
+    function()
+        dapui.close( { layout = 1 } )
+        dapui.close( { layout = 3 } )
+        dapui.toggle( { layout = 2, reset = true } )
+    end, {}
+)
+vim.keymap.set('n', '<leader>dv',
+    function()
+        dapui.close( { layout = 1 } )
+        dapui.close( { layout = 2 } )
+        dapui.toggle( { layout = 3, reset = true } )
+    end, {}
+)
 vim.keymap.set('n', '<leader>dg', dap_go.debug_test, {})
 
 dapui.setup({
@@ -329,49 +350,76 @@ dapui.setup({
             terminate = "tm",
         },
     },
+    element_mappings = {},
+    expand_lines = false,
+    floating = {
+        border = "single",
+        mappings = {
+            close = { "q", "<Esc>" }
+        },
+    },
+    force_buffers = true,
     icons = {
-        expanded = ">",
-        collapsed = "v",
+        collapsed = ">",
         current_frame = ">",
+        expanded = "v",
     },
     layouts = {
         {
             elements = {
                 {
-                    id = "breakpoints",
-                    size = 0.15,
-                },
-                {
                     id = "console",
-                    size = 0.15,
+                    size = 0.4,
                 },
                 {
                     id = "repl",
-                    size = 0.35,
+                    size = 0.6,
+                },
+            },
+            position = "bottom",
+            size = 0.5,
+        },
+        {
+            elements = {
+                {
+                    id = "breakpoints",
+                    size = 0.4,
                 },
                 {
                     id = "stacks",
-                    size = 0.35,
+                    size = 0.6,
                 },
             },
-            position = "right",
-            size = 0.30,
+            position = "bottom",
+            size = 0.5,
         },
         {
             elements = {
                 {
                     id = "watches",
-                    size = 0.50,
+                    size = 0.4,
                 },
                 {
                     id = "scopes",
-                    size = 0.50,
+                    size = 0.6,
                 },
             },
             position = "bottom",
-            size = 0.30,
+            size = 0.5,
         },
     },
+    mappings = {
+        edit = "e",
+        expand = { "<CR>", "<2-LeftMouse>" },
+        open = "o",
+        remove = "d",
+        repl = "r",
+        toggle = "t",
+    },
+    render = {
+        indent = 1,
+        max_value_lines = 100,
+    }
 })
 dap_go.setup()
 
