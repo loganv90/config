@@ -173,11 +173,17 @@ require'nvim-treesitter.configs'.setup({
         "json",
         "python",
     },
+    sync_install = false,
+    auto_install = false,
     highlight = {
         enable = true,
     },
 })
-require'treesitter-context'.setup()
+require'treesitter-context'.setup({
+    enable = true,
+    max_lines = 0,
+    multiline_threshold = 1,
+})
 
 
 
