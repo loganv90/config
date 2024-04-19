@@ -217,6 +217,8 @@ require('gitsigns').setup({
 
         vim.keymap.set('n', '<leader>gr', gs.reset_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gp', gs.preview_hunk, { buffer = bufnr })
+        vim.keymap.set('n', '<leader>gs', gs.stage_hunk, { buffer = bufnr })
+        vim.keymap.set('n', '<leader>gu', gs.undo_stage_hunk, { buffer = bufnr })
     end,
 })
 
@@ -383,7 +385,7 @@ dapui.setup({
                 },
             },
             position = "bottom",
-            size = 0.5,
+            size = 0.4,
         },
         {
             elements = {
@@ -397,7 +399,7 @@ dapui.setup({
                 },
             },
             position = "bottom",
-            size = 0.5,
+            size = 0.4,
         },
         {
             elements = {
@@ -411,7 +413,7 @@ dapui.setup({
                 },
             },
             position = "bottom",
-            size = 0.5,
+            size = 0.4,
         },
     },
     mappings = {
