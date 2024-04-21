@@ -71,6 +71,8 @@ require("lazy").setup({
     { 'L3MON4D3/LuaSnip' },
     { 'rafamadriz/friendly-snippets' },
 
+    { 'lopi-py/luau-lsp.nvim' },
+
     { 'github/copilot.vim' },
 
     { 'mfussenegger/nvim-dap' },
@@ -160,6 +162,7 @@ require'nvim-treesitter.configs'.setup({
     ensure_installed = {
         "c",
         "lua",
+        "luau",
         "vim",
         "vimdoc",
         "query",
@@ -234,18 +237,6 @@ local cmp = require('cmp')
 local luasnip = require('luasnip')
 local from_vscode = require('luasnip.loaders.from_vscode')
 
-local servers = {
-    tsserver = {},
-    gopls = {},
-    pyright = {},
-    lua_ls = {
-        Lua = {
-            workspace = {
-                checkThirdParty = false,
-            },
-        },
-    },
-}
 local on_attach = function(_, bufnr)
     vim.keymap.set('n', '<leader>ld', builtin.lsp_definitions, { buffer = bufnr, remap = false })
     vim.keymap.set('n', '<leader>lr', builtin.lsp_references, { buffer = bufnr, remap = false })
@@ -263,15 +254,77 @@ local capabilities = cmp_nvim_lsp.default_capabilities()
 
 mason.setup()
 mason_lspconfig.setup {
-    ensure_installed = vim.tbl_keys(servers)
+    ensure_installed = {
+        'tsserver',
+        'gopls',
+        'pyright',
+        'lua_ls',
+        'luau_lsp',
+    },
 }
 mason_lspconfig.setup_handlers {
-    function(server_name)
-        lspconfig[server_name].setup {
+    tsserver = function()
+        lspconfig.tsserver.setup {
             capabilities = capabilities,
             on_attach = on_attach,
-            settings = servers[server_name],
+            settings = {},
         }
+    end,
+    gopls = function()
+        lspconfig.gopls.setup {
+            capabilities = capabilities,
+            on_attach = on_attach,
+            settings = {},
+        }
+    end,
+    pyright = function()
+        lspconfig.pyright.setup {
+            capabilities = capabilities,
+            on_attach = on_attach,
+            settings = {},
+        }
+    end,
+    lua_ls = function()
+        lspconfig.lua_ls.setup {
+            capabilities = capabilities,
+            on_attach = on_attach,
+            settings = {
+                Lua = {
+                    workspace = {
+                        checkThirdParty = false,
+                    },
+                },
+            },
+        }
+    end,
+    luau_lsp = function()
+        local luau_capabilities = vim.lsp.protocol.make_client_capabilities()
+        luau_capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = true
+        require('luau-lsp').setup({
+            sourcemap = {
+                enable = true,
+                autogenerate = true,
+                rojo_project_file = 'default.project.json',
+            },
+            types = {
+                roblox = true,
+                roblox_security_level = 'PluginSecurity',
+            },
+            server = {
+                filetypes = { 'luau' },
+                capabilities = luau_capabilities,
+                on_attach = on_attach,
+                settings = {
+                    ['luau-lsp'] = {
+                        completion = {
+                            imports = {
+                                enabled = true,
+                            },
+                        },
+                    },
+                },
+            },
+        })
     end,
 }
 

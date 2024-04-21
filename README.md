@@ -12,6 +12,8 @@ prerequisites:
 - debugpy
 
 installation:
-- clone into ~/.config/
-- run :Copilot setup
+- ln -s pathToRepo/nvim ~/.config/nvim
+- ln -s pathToRepo/tmux ~/.config/tmux
+- ln -s pathToRepo/alacritty ~/.config/alacritty
+- :Copilot setup
 - make a debugpy virtualenv in ~/.virtualenvs/
