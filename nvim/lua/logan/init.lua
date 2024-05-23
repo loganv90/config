@@ -313,7 +313,10 @@ mason_lspconfig.setup_handlers {
             server = {
                 filetypes = { 'luau' },
                 capabilities = luau_capabilities,
-                on_attach = on_attach,
+                on_attach = function(client, bufnr)
+                    on_attach(client, bufnr)
+                    vim.keymap.set('n', '<leader>lg', ':LuauRegenerateSourcemap<CR>', { buffer = bufnr, remap = false})
+                end,
                 settings = {
                     ['luau-lsp'] = {
                         completion = {
@@ -335,6 +338,9 @@ cmp.setup({
         expand = function(args)
             luasnip.lsp_expand(args.body)
         end
+    },
+    completion = {
+        completeopt = 'menu,menuone,preview',
     },
     mapping = cmp.mapping.preset.insert({
         ['<C-n>'] = cmp.mapping.select_next_item(),
