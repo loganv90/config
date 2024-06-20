@@ -19,6 +19,8 @@ vim.opt.updatetime = 80
 
 vim.opt.completeopt = 'menu,menuone,preview'
 
+vim.opt.mouse = ''
+
 vim.g.mapleader = ' '
 
 
