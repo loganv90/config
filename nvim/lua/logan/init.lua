@@ -160,6 +160,7 @@ vim.keymap.set('v', '<leader>sg', 'y<ESC>:Telescope live_grep default_text=<C-r>
 
 
 
+-- When treesitter stops working, run the command :e! to refresh the buffer.
 require'nvim-treesitter.configs'.setup({
     ensure_installed = {
         "c",
@@ -313,7 +314,7 @@ mason_lspconfig.setup_handlers {
                 roblox_security_level = 'PluginSecurity',
             },
             server = {
-                filetypes = { 'luau' },
+                filetypes = { 'luau' }, -- Not using luau-lsp for files with .lua extension.
                 capabilities = luau_capabilities,
                 on_attach = function(client, bufnr)
                     on_attach(client, bufnr)
