@@ -309,8 +309,10 @@ mason_lspconfig.setup_handlers {
                 autogenerate = true,
                 rojo_project_file = 'default.project.json',
             },
+            platform = {
+                type = 'roblox',
+            },
             types = {
-                roblox = true,
                 roblox_security_level = 'PluginSecurity',
             },
             server = {
