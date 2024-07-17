@@ -1,3 +1,4 @@
+-- To see all the keymaps, run the command ':help index'
 vim.opt.number = true
 vim.opt.relativenumber = true
 
@@ -22,6 +23,8 @@ vim.opt.completeopt = 'menu,menuone,preview'
 vim.opt.mouse = ''
 
 vim.g.mapleader = ' '
+
+vim.api.nvim_create_user_command('E', 'Explore', {})
 
 
 
@@ -58,6 +61,7 @@ require("lazy").setup({
     { 'nvim-treesitter/nvim-treesitter-context' },
 
     { 'lewis6991/gitsigns.nvim' },
+    { 'tpope/vim-fugitive' },
 
     { 'neovim/nvim-lspconfig' },
     { 'williamboman/mason.nvim' },
@@ -91,6 +95,7 @@ require('tokyonight').setup({
     style = 'night',
 })
 vim.cmd('colorscheme tokyonight')
+
 
 
 
@@ -227,6 +232,7 @@ require('gitsigns').setup({
         vim.keymap.set('n', '<leader>gu', gs.undo_stage_hunk, { buffer = bufnr })
     end,
 })
+vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', {})
 
 
 
