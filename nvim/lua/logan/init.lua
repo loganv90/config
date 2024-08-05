@@ -1,4 +1,8 @@
--- To see all the keymaps, run the command ':help index'
+-- To see all keymaps, ":h index"
+-- To run command, ":'<,'>norm {command}"
+-- To run command in matching lines, ":'<,'>g/{pattern}/norm {command}"
+-- To replace, ":'<,'>s/{pattern}/{replacement}/g"
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 
@@ -24,7 +28,8 @@ vim.opt.mouse = ''
 
 vim.g.mapleader = ' '
 
-vim.api.nvim_create_user_command('E', 'Explore', {})
+vim.keymap.set('n', '-', ':Explore<CR>', {})
+vim.keymap.set('n', '+', ':tabnew<CR>', {})
 
 
 
@@ -46,13 +51,9 @@ require("lazy").setup({
     { 'folke/tokyonight.nvim' },
     { 'folke/neodev.nvim' },
 
-    { 'nvim-lua/plenary.nvim' },
     { 'nvim-neotest/nvim-nio' },
 
-    {
-        'nvim-telescope/telescope.nvim',
-        tag = '0.1.5',
-    },
+    { 'ibhagwan/fzf-lua' },
 
     {
         'nvim-treesitter/nvim-treesitter',
@@ -100,66 +101,45 @@ vim.cmd('colorscheme tokyonight')
 
 
 
-local actions = require('telescope.actions')
-local actions_layout = require('telescope.actions.layout')
-local actions_set = require('telescope.actions.set')
-require('telescope').setup({
-    defaults = {
-        mappings = {
-            i = {
-                ['<C-t>'] = function(prompt_bufnr)
-                    actions_layout.cycle_layout_next(prompt_bufnr)
-                end,
-                ['<C-y>'] = function(prompt_bufnr)
-                    actions_set.scroll_results(prompt_bufnr, -1)
-                end,
-                ['<C-e>'] = function(prompt_bufnr)
-                    actions_set.scroll_results(prompt_bufnr, 1)
-                end,
-                ['<Up>'] = function(prompt_bufnr)
-                    actions.cycle_history_prev(prompt_bufnr)
-                end,
-                ['<Down>'] = function(prompt_bufnr)
-                    actions.cycle_history_next(prompt_bufnr)
-                end,
-            },
+local fzf_lua = require('fzf-lua')
+fzf_lua.setup({
+    winopts = {
+        width = 0.75,
+        height = 0.95,
+        row = 0.5,
+        col = 1,
+        fullscreen = true,
+        backdrop = 100,
+        preview = {
+            vertical = 'down:50%',
+            layout = 'vertical',
         },
-        layout_strategy = 'vertical',
-        cycle_layout_list = {
-            'horizontal',
-            'vertical',
+    },
+    keymap = {
+        builtin = {
+            false,
+            ["<C-t>"] = "toggle-fullscreen",
+            ["<C-u>"] = "preview-page-up",
+            ["<C-d>"] = "preview-page-down",
         },
-        layout_config = {
-            horizontal = {
-                width = 0.8,
-                height = 0.95,
-                preview_width = 0.5,
-                preview_cutoff = 120,
-            },
-            vertical = {
-                width = 0.8,
-                height = 0.95,
-                preview_height = 0.5,
-                preview_cutoff = 40,
-            },
-        },
-        path_display = {
-            'truncate'
+        fzf = {
+            false,
+            ["ctrl-u"] = "preview-page-up",
+            ["ctrl-d"] = "preview-page-down",
         }
     },
 })
-local builtin = require('telescope.builtin')
-vim.keymap.set('n', '<leader>sf', builtin.find_files, {})
-vim.keymap.set('n', '<leader>sg', builtin.live_grep, {})
-vim.keymap.set('n', '<leader>sw', builtin.grep_string, {})
-vim.keymap.set('n', '<leader>sb', builtin.buffers, {})
-vim.keymap.set('n', '<leader>so', builtin.oldfiles, {})
-vim.keymap.set('n', '<leader>sk', builtin.keymaps, {})
-vim.keymap.set('n', '<leader>sd', builtin.diagnostics, {})
-vim.keymap.set('n', '<leader>ss', builtin.git_status, {})
-vim.keymap.set('n', '<leader>sm', builtin.marks, {})
-vim.keymap.set('v', '<leader>sf', 'y<ESC>:Telescope find_files default_text=<C-r>0<CR>', {})
-vim.keymap.set('v', '<leader>sg', 'y<ESC>:Telescope live_grep default_text=<C-r>0<CR>', {})
+vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
+vim.keymap.set('n', '<leader>sg', fzf_lua.grep, {})
+vim.keymap.set('n', '<leader>so', fzf_lua.oldfiles, {})
+vim.keymap.set('n', '<leader>sb', fzf_lua.buffers, {})
+vim.keymap.set('n', '<leader>st', fzf_lua.tabs, {})
+vim.keymap.set('n', '<leader>sk', fzf_lua.keymaps, {})
+vim.keymap.set('n', '<leader>sd', fzf_lua.diagnostics_workspace, {})
+vim.keymap.set('n', '<leader>ss', fzf_lua.git_status, {})
+vim.keymap.set('n', '<leader>sh', fzf_lua.search_history, {})
+vim.keymap.set('n', '<leader>sc', fzf_lua.command_history, {})
+vim.keymap.set('n', '<leader>sr', fzf_lua.resume, {})
 
 
 
@@ -247,10 +227,11 @@ local luasnip = require('luasnip')
 local from_vscode = require('luasnip.loaders.from_vscode')
 
 local on_attach = function(_, bufnr)
-    vim.keymap.set('n', '<leader>ld', builtin.lsp_definitions, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>lr', builtin.lsp_references, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>li', builtin.lsp_implementations, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>ls', builtin.lsp_document_symbols, { buffer = bufnr, remap = false })
+    vim.keymap.set('n', '<leader>ld', fzf_lua.lsp_definitions, { buffer = bufnr, remap = false })
+    vim.keymap.set('n', '<leader>lr', fzf_lua.lsp_references, { buffer = bufnr, remap = false })
+    vim.keymap.set('n', '<leader>li', fzf_lua.lsp_implementations, { buffer = bufnr, remap = false })
+    vim.keymap.set('n', '<leader>ls', fzf_lua.lsp_document_symbols, { buffer = bufnr, remap = false })
+    vim.keymap.set('n', '<leader>lt', fzf_lua.lsp_typedefs, { buffer = bufnr, remap = false })
     vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
     vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
     vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })
@@ -264,7 +245,7 @@ local capabilities = cmp_nvim_lsp.default_capabilities()
 mason.setup()
 mason_lspconfig.setup {
     ensure_installed = {
-        'tsserver',
+        'ts_ls',
         'gopls',
         'pyright',
         'lua_ls',
@@ -326,7 +307,7 @@ mason_lspconfig.setup_handlers {
                 capabilities = luau_capabilities,
                 on_attach = function(client, bufnr)
                     on_attach(client, bufnr)
-                    vim.keymap.set('n', '<leader>lg', ':LuauRegenerateSourcemap<CR>', { buffer = bufnr, remap = false})
+                    vim.keymap.set('n', '<leader>lg', ':LuauLsp regenerate_sourcemap<CR>', { buffer = bufnr, remap = false})
                 end,
                 settings = {
                     ['luau-lsp'] = {
