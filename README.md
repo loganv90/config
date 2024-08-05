@@ -7,7 +7,9 @@ includes config files for:
 
 prerequisites:
 - nvm
+- fd
 - ripgrep
+- fzf
 - go dlv
 - debugpy
 
