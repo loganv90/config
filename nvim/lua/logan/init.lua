@@ -1,7 +1,15 @@
+-- To see all startup messages from the config, ":messages"
+-- To re-source the config, ":source {path to config or % from init.lua}"
+-- To see Mason installs, ":Mason"
+-- To see Lazy installs, ":Lazy"
+-- To see LSP status, ":LspInfo"
 -- To see all keymaps, ":h index"
 -- To run command, ":'<,'>norm {command}"
 -- To run command in matching lines, ":'<,'>g/{pattern}/norm {command}"
 -- To replace, ":'<,'>s/{pattern}/{replacement}/g"
+-- To see lua objects, ":lua =vim"
+-- To run lua code, ":lua print('what')"
+-- To refresh the buffer, ":e!"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -145,7 +153,6 @@ vim.keymap.set('n', '<leader>sr', fzf_lua.resume, {})
 
 
 
--- When treesitter stops working, run the command :e! to refresh the buffer.
 require'nvim-treesitter.configs'.setup({
     ensure_installed = {
         "c",
@@ -241,6 +248,8 @@ local on_attach = function(_, bufnr)
     vim.keymap.set('n', '<leader>lf', vim.diagnostic.open_float, { buffer = bufnr, remap = false })
 end
 local capabilities = cmp_nvim_lsp.default_capabilities()
+local dynamicRegistration_capabilities = vim.lsp.protocol.make_client_capabilities()
+dynamicRegistration_capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = true
 
 mason.setup()
 mason_lspconfig.setup {
@@ -253,8 +262,8 @@ mason_lspconfig.setup {
     },
 }
 mason_lspconfig.setup_handlers {
-    tsserver = function()
-        lspconfig.tsserver.setup {
+    ts_ls = function()
+        lspconfig.ts_ls.setup {
             capabilities = capabilities,
             on_attach = on_attach,
             settings = {},
@@ -288,8 +297,6 @@ mason_lspconfig.setup_handlers {
         }
     end,
     luau_lsp = function()
-        local luau_capabilities = vim.lsp.protocol.make_client_capabilities()
-        luau_capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = true
         require('luau-lsp').setup({
             sourcemap = {
                 enable = true,
@@ -303,8 +310,8 @@ mason_lspconfig.setup_handlers {
                 roblox_security_level = 'PluginSecurity',
             },
             server = {
-                filetypes = { 'luau' }, -- Not using luau-lsp for files with .lua extension.
-                capabilities = luau_capabilities,
+                filetypes = { 'luau' },
+                capabilities = dynamicRegistration_capabilities,
                 on_attach = function(client, bufnr)
                     on_attach(client, bufnr)
                     vim.keymap.set('n', '<leader>lg', ':LuauLsp regenerate_sourcemap<CR>', { buffer = bufnr, remap = false})
@@ -322,6 +329,11 @@ mason_lspconfig.setup_handlers {
         })
     end,
 }
+lspconfig.rust_analyzer.setup {
+    capabilities = capabilities,
+    on_attach = on_attach,
+    settings = {},
+}
 
 from_vscode.lazy_load()
 luasnip.config.setup()
@@ -337,6 +349,13 @@ cmp.setup({
     mapping = cmp.mapping.preset.insert({
         ['<C-n>'] = cmp.mapping.select_next_item(),
         ['<C-p>'] = cmp.mapping.select_prev_item(),
+        ['<C-l>'] = cmp.mapping(function (original)
+            if luasnip.expand_or_jumpable() then
+                luasnip.jump(1)
+            else
+                original()
+            end
+        end),
         ['<C-y>'] = cmp.mapping.confirm({ select = true }),
         ['<C-Space>'] = cmp.mapping.complete(),
         ['<C-e>'] = cmp.mapping.abort(),
