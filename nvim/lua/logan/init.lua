@@ -10,6 +10,9 @@
 -- To see lua objects, ":lua =vim"
 -- To run lua code, ":lua print('what')"
 -- To refresh the buffer, ":e!"
+-- To move window to new tab, "<C-w>T"
+-- To use terminal: ":term", "i", "<C-\><C-n>"
+-- To use quickfix: ":copen", ":cclose", ":cnext", ":cprev"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -112,42 +115,56 @@ vim.cmd('colorscheme tokyonight')
 local fzf_lua = require('fzf-lua')
 fzf_lua.setup({
     winopts = {
-        width = 0.75,
-        height = 0.95,
+        width = 0.5,
+        height = 1,
         row = 0.5,
         col = 1,
         fullscreen = true,
         backdrop = 100,
+        border = 'none',
         preview = {
-            vertical = 'down:50%',
+            vertical = 'up:50%',
             layout = 'vertical',
         },
     },
+    fzf_opts = {
+        ['--layout'] = 'default',
+    },
     keymap = {
         builtin = {
-            false,
-            ["<C-t>"] = "toggle-fullscreen",
-            ["<C-u>"] = "preview-page-up",
-            ["<C-d>"] = "preview-page-down",
+            true,
+            ["<C-y>"] = "preview-up",
+            ["<C-e>"] = "preview-down",
+            ["<C-u>"] = "preview-half-page-up",
+            ["<C-d>"] = "preview-half-page-down",
         },
         fzf = {
-            false,
-            ["ctrl-u"] = "preview-page-up",
-            ["ctrl-d"] = "preview-page-down",
+            true,
+            ["ctrl-y"] = "preview-up",
+            ["ctrl-e"] = "preview-down",
+            ["ctrl-u"] = "preview-half-page-up",
+            ["ctrl-d"] = "preview-half-page-down",
+
+            ["ctrl-a"] = "toggle-all",
+            ["tab"] = "toggle",
         }
     },
 })
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
-vim.keymap.set('n', '<leader>sg', fzf_lua.grep, {})
+vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep_glob, {})
+vim.keymap.set('v', '<leader>sg', fzf_lua.grep_visual, {})
 vim.keymap.set('n', '<leader>so', fzf_lua.oldfiles, {})
 vim.keymap.set('n', '<leader>sb', fzf_lua.buffers, {})
 vim.keymap.set('n', '<leader>st', fzf_lua.tabs, {})
 vim.keymap.set('n', '<leader>sk', fzf_lua.keymaps, {})
 vim.keymap.set('n', '<leader>sd', fzf_lua.diagnostics_workspace, {})
 vim.keymap.set('n', '<leader>ss', fzf_lua.git_status, {})
-vim.keymap.set('n', '<leader>sh', fzf_lua.search_history, {})
+vim.keymap.set('n', '<leader>st', fzf_lua.search_history, {})
 vim.keymap.set('n', '<leader>sc', fzf_lua.command_history, {})
 vim.keymap.set('n', '<leader>sr', fzf_lua.resume, {})
+vim.keymap.set('n', '<leader>sh', fzf_lua.helptags, {})
+vim.keymap.set('n', '<leader>sec', function () fzf_lua.live_grep({ cwd=vim.fn.stdpath('config') }) end, {})
+vim.keymap.set('n', '<leader>sep', function () fzf_lua.live_grep({ cwd=vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
 
 
@@ -156,6 +173,7 @@ vim.keymap.set('n', '<leader>sr', fzf_lua.resume, {})
 require'nvim-treesitter.configs'.setup({
     ensure_installed = {
         "c",
+        "cpp",
         "lua",
         "luau",
         "vim",
