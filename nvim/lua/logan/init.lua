@@ -17,10 +17,17 @@
 vim.opt.number = true
 vim.opt.relativenumber = true
 
-vim.opt.tabstop = 4
+vim.opt.tabstop = 8
 vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
+
+vim.opt.list = true
+vim.opt.listchars = {
+    tab = '> ',
+    trail = '-',
+    nbsp = '+',
+}
 
 vim.opt.wrap = true
 vim.opt.breakindent = true
@@ -38,6 +45,7 @@ vim.opt.completeopt = 'menu,menuone,preview'
 vim.opt.mouse = ''
 
 vim.g.mapleader = ' '
+vim.g.maplocalleader = '\\'
 
 vim.keymap.set('n', '-', ':Explore<CR>', {})
 vim.keymap.set('n', '+', ':tabnew<CR>', {})
@@ -47,20 +55,40 @@ vim.keymap.set('n', '+', ':tabnew<CR>', {})
 
 
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
-    vim.fn.system({
-        "git",
-        "clone",
-        "--filter=blob:none",
-        "https://github.com/folke/lazy.nvim.git",
-        "--branch=stable",
-        lazypath,
-    }) end
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
+    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
+    if vim.v.shell_error ~= 0 then
+        vim.api.nvim_echo({
+            { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
+            { out, "WarningMsg" },
+            { "\nPress any key to exit..." },
+        }, true, {})
+        vim.fn.getchar()
+        os.exit(1)
+    end
+end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-    { 'folke/tokyonight.nvim' },
-    { 'folke/neodev.nvim' },
+    {
+        'folke/lazydev.nvim',
+        ft = 'lua',
+        opts = {
+            library = {
+                { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+            }
+        }
+    },
+    {
+        'sainnhe/gruvbox-material',
+        config = function()
+            vim.g.gruvbox_material_background = 'hard'
+            vim.g.gruvbox_material_foreground = 'material'
+            vim.g.gruvbox_material_enable_italic = true
+            vim.cmd('colorscheme gruvbox-material')
+        end,
+    },
 
     { 'nvim-neotest/nvim-nio' },
 
@@ -97,16 +125,6 @@ require("lazy").setup({
     { 'leoluz/nvim-dap-go' },
     { 'rcarriga/nvim-dap-ui' },
 })
-
-
-
-
-
-require('neodev').setup()
-require('tokyonight').setup({
-    style = 'night',
-})
-vim.cmd('colorscheme tokyonight')
 
 
 
