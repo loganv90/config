@@ -142,11 +142,13 @@ fzf_lua.setup({
         border = 'none',
         preview = {
             vertical = 'up:50%',
-            layout = 'vertical',
+            horizontal = 'right:50%',
+            layout = 'flex',
         },
     },
     fzf_opts = {
         ['--layout'] = 'default',
+        ['--history'] = vim.fs.joinpath(vim.fn.stdpath('data'), 'fzf-lua-history'),
     },
     keymap = {
         builtin = {
