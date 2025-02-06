@@ -14,6 +14,12 @@
 -- To use terminal: ":term", "i", "<C-\><C-n>"
 -- To use quickfix: ":copen", ":cclose", ":cnext", ":cprev"
 
+-- TODO use the git blame from gitsigns
+-- TODO add tab numbers to the tabline
+-- TODO try nvim oil
+-- TODO try undo tree
+-- TODO try blink cmp
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 
