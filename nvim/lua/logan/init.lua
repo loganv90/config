@@ -379,6 +379,11 @@ lspconfig.rust_analyzer.setup {
     on_attach = on_attach,
     settings = {},
 }
+lspconfig.clangd.setup {
+    capabilities = capabilities,
+    on_attach = on_attach,
+    settings = {},
+}
 
 from_vscode.lazy_load()
 luasnip.config.setup()
