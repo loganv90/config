@@ -14,6 +14,7 @@
 -- To use terminal: ":term", "i", "<C-\><C-n>"
 -- To use quickfix: ":copen", ":cclose", ":cnext", ":cprev"
 -- To use tag stack: "<C-]>", "<C-t>"
+-- To reset "C-u" and "C-d" scrolling distance, ":set scroll=0"
 
 -- TODO use the git blame from gitsigns
 -- TODO add tab numbers to the tabline
@@ -375,6 +376,11 @@ mason_lspconfig.setup_handlers {
     end,
 }
 lspconfig.rust_analyzer.setup {
+    capabilities = capabilities,
+    on_attach = on_attach,
+    settings = {},
+}
+lspconfig.clangd.setup {
     capabilities = capabilities,
     on_attach = on_attach,
     settings = {},
