@@ -15,6 +15,8 @@
 -- To use quickfix: ":copen", ":cclose", ":cnext", ":cprev"
 -- To use tag stack: "<C-]>", "<C-t>"
 -- To reset "C-u" and "C-d" scrolling distance, ":set scroll=0"
+-- To remove search highlight: ":nohl", "<C-l>"
+-- To move between words: "w", "W", "b", "B", "e", "E", "ge", "gE"
 
 -- TODO use the git blame from gitsigns
 -- TODO add tab numbers to the tabline
@@ -56,7 +58,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = '\\'
 
 vim.keymap.set('n', '-', ':Explore<CR>', {})
-vim.keymap.set('n', '+', ':tabnew<CR>', {})
+vim.keymap.set('n', '+', ':tab split<CR>', {})
 
 
 
@@ -344,19 +346,7 @@ mason_lspconfig.setup_handlers {
     end,
     luau_lsp = function()
         require('luau-lsp').setup({
-            sourcemap = {
-                enable = true,
-                autogenerate = true,
-                rojo_project_file = 'default.project.json',
-            },
-            platform = {
-                type = 'roblox',
-            },
-            types = {
-                roblox_security_level = 'PluginSecurity',
-            },
             server = {
-                filetypes = { 'luau' },
                 capabilities = dynamicRegistration_capabilities,
                 on_attach = function(client, bufnr)
                     on_attach(client, bufnr)
@@ -375,6 +365,23 @@ mason_lspconfig.setup_handlers {
         })
     end,
 }
+
+local function rojo_project()
+  return vim.fs.root(0, function(name)
+    return name:match ".+%.project%.json$"
+  end)
+end
+
+if rojo_project() then
+  vim.filetype.add {
+    extension = {
+      lua = function(path)
+        return path:match "%.nvim%.lua$" and "lua" or "luau"
+      end,
+    },
+  }
+end
+
 lspconfig.rust_analyzer.setup {
     capabilities = capabilities,
     on_attach = on_attach,
