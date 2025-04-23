@@ -32,6 +32,9 @@ vim.opt.softtabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.expandtab = true
 
+vim.opt.splitbelow = true
+vim.opt.splitright = true
+
 vim.opt.list = true
 vim.opt.listchars = {
     tab = '> ',
