@@ -17,12 +17,16 @@
 -- To reset "C-u" and "C-d" scrolling distance, ":set scroll=0"
 -- To remove search highlight: ":nohl", "<C-l>"
 -- To move between words: "w", "W", "b", "B", "e", "E", "ge", "gE"
+-- To edit command-line command in command-line window: "<C-f>"
+-- To return from command-line window with command: "<C-c>"
+-- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 
 -- TODO use the git blame from gitsigns
 -- TODO add tab numbers to the tabline
 -- TODO try nvim oil
 -- TODO try undo tree
 -- TODO try blink cmp
+-- TODO add treesitter movement binds
 
 vim.opt.number = true
 vim.opt.relativenumber = true
