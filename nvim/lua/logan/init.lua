@@ -1,5 +1,6 @@
 -- To see all startup messages from the config, ":messages"
 -- To re-source the config, ":source {path to config or % from init.lua}"
+-- To run some lua code visually select the code then do, ":source"
 -- To see Mason installs, ":Mason"
 -- To see Lazy installs, ":Lazy"
 -- To see LSP status, ":LspInfo"
@@ -45,6 +46,8 @@ vim.opt.listchars = {
     trail = '-',
     nbsp = '+',
 }
+
+vim.opt.guicursor = "n-v-c-ci-sm:block,i-ve:ver25,r-cr-o:hor20"
 
 vim.opt.wrap = true
 vim.opt.breakindent = true
@@ -127,9 +130,10 @@ require("lazy").setup({
     { 'hrsh7th/nvim-cmp' },
     { 'hrsh7th/cmp-buffer' },
     { 'hrsh7th/cmp-path' },
-    { 'saadparwaiz1/cmp_luasnip' },
+    { 'hrsh7th/cmp-cmdline' },
     { 'hrsh7th/cmp-nvim-lsp' },
     { 'hrsh7th/cmp-nvim-lua' },
+    { 'saadparwaiz1/cmp_luasnip' },
 
     { 'L3MON4D3/LuaSnip' },
     { 'rafamadriz/friendly-snippets' },
@@ -424,8 +428,6 @@ cmp.setup({
         ['<C-y>'] = cmp.mapping.confirm({ select = true }),
         ['<C-Space>'] = cmp.mapping.complete(),
         ['<C-e>'] = cmp.mapping.abort(),
-        ['<C-t>'] = cmp.mapping.scroll_docs(4),
-        ['<C-d>'] = cmp.mapping.scroll_docs(-4),
     }),
     sources = {
         { name = 'nvim_lsp' },
@@ -433,6 +435,25 @@ cmp.setup({
         { name = 'luasnip' },
         { name = 'buffer' },
         { name = 'path' },
+    },
+})
+cmp.setup.cmdline('/', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+        { name = 'buffer' },
+    },
+})
+cmp.setup.cmdline('?', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+        { name = 'buffer' },
+    },
+})
+cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+        { name = 'path' },
+        { name = 'cmdline' },
     },
 })
 
