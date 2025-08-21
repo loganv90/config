@@ -23,7 +23,6 @@
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 
 -- TODO use the git blame from gitsigns
--- TODO add tab numbers to the tabline
 -- TODO try nvim oil
 -- TODO try undo tree
 -- TODO try blink cmp
@@ -285,6 +284,7 @@ vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', {})
 
 
 local lspconfig = require('lspconfig')
+local luau_lsp = require('luau-lsp')
 local cmp_nvim_lsp = require('cmp_nvim_lsp')
 local mason = require('mason')
 local mason_lspconfig = require('mason-lspconfig')
@@ -292,26 +292,32 @@ local cmp = require('cmp')
 local luasnip = require('luasnip')
 local from_vscode = require('luasnip.loaders.from_vscode')
 
-local on_attach = function(_, bufnr)
-    vim.keymap.set('n', '<leader>ld', fzf_lua.lsp_definitions, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>lr', fzf_lua.lsp_references, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>li', fzf_lua.lsp_implementations, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>ls', fzf_lua.lsp_document_symbols, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>lt', fzf_lua.lsp_typedefs, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })
-    vim.keymap.set('i', '<C-k>', vim.lsp.buf.signature_help, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { buffer = bufnr, remap = false })
-    vim.keymap.set('n', '<leader>lf', vim.diagnostic.open_float, { buffer = bufnr, remap = false })
-end
+vim.api.nvim_create_autocmd("LspAttach", {
+    callback = function(args)
+        local bufnr = args.buf
+        vim.keymap.set('n', '<leader>ld', fzf_lua.lsp_definitions, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lr', fzf_lua.lsp_references, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>li', fzf_lua.lsp_implementations, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>ls', fzf_lua.lsp_document_symbols, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lt', fzf_lua.lsp_typedefs, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lg', ':LuauLsp regenerate_sourcemap<CR>', { buffer = bufnr, remap = false})
+        vim.keymap.set('i', '<C-k>', vim.lsp.buf.signature_help, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lf', vim.diagnostic.open_float, { buffer = bufnr, remap = false })
+    end,
+})
+
+vim.diagnostic.config({
+    virtual_text = true,
+    virtual_lines = false,
+})
+
 local capabilities = cmp_nvim_lsp.default_capabilities()
-local dynamicRegistration_capabilities = vim.lsp.protocol.make_client_capabilities()
-dynamicRegistration_capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = true
 
 mason.setup()
-mason_lspconfig.setup {
+mason_lspconfig.setup({
     ensure_installed = {
         'ts_ls',
         'gopls',
@@ -319,90 +325,57 @@ mason_lspconfig.setup {
         'lua_ls',
         'luau_lsp',
     },
-}
-mason_lspconfig.setup_handlers {
-    ts_ls = function()
-        lspconfig.ts_ls.setup {
-            capabilities = capabilities,
-            on_attach = on_attach,
-            settings = {},
-        }
-    end,
-    gopls = function()
-        lspconfig.gopls.setup {
-            capabilities = capabilities,
-            on_attach = on_attach,
-            settings = {},
-        }
-    end,
-    pyright = function()
-        lspconfig.pyright.setup {
-            capabilities = capabilities,
-            on_attach = on_attach,
-            settings = {},
-        }
-    end,
-    lua_ls = function()
-        lspconfig.lua_ls.setup {
-            capabilities = capabilities,
-            on_attach = on_attach,
-            settings = {
-                Lua = {
-                    workspace = {
-                        checkThirdParty = false,
-                    },
-                },
-            },
-        }
-    end,
-    luau_lsp = function()
-        require('luau-lsp').setup({
-            server = {
-                capabilities = dynamicRegistration_capabilities,
-                on_attach = function(client, bufnr)
-                    on_attach(client, bufnr)
-                    vim.keymap.set('n', '<leader>lg', ':LuauLsp regenerate_sourcemap<CR>', { buffer = bufnr, remap = false})
-                end,
-                settings = {
-                    ['luau-lsp'] = {
-                        completion = {
-                            imports = {
-                                enabled = true,
-                            },
-                        },
-                    },
-                },
-            },
-        })
-    end,
-}
+    automatic_enable = false,
+})
 
-local function rojo_project()
-  return vim.fs.root(0, function(name)
-    return name:match ".+%.project%.json$"
-  end)
-end
-
-if rojo_project() then
-  vim.filetype.add {
-    extension = {
-      lua = function(path)
-        return path:match "%.nvim%.lua$" and "lua" or "luau"
-      end,
+lspconfig.ts_ls.setup({
+    capabilities = capabilities,
+    settings = {},
+})
+lspconfig.gopls.setup({
+    capabilities = capabilities,
+    settings = {},
+})
+lspconfig.pyright.setup({
+    capabilities = capabilities,
+    settings = {},
+})
+lspconfig.lua_ls.setup({
+    capabilities = capabilities,
+    settings = {
+        Lua = {
+            workspace = {
+                checkThirdParty = false,
+            },
+        },
     },
-  }
-end
-
-lspconfig.rust_analyzer.setup {
+})
+lspconfig.rust_analyzer.setup({
     capabilities = capabilities,
-    on_attach = on_attach,
     settings = {},
-}
-lspconfig.clangd.setup {
+})
+lspconfig.clangd.setup({
     capabilities = capabilities,
-    on_attach = on_attach,
     settings = {},
-}
+})
+luau_lsp.config({
+    capabilities = {
+        workspace = {
+            didChangeWatchedFiles = {
+                dynamicRegistration = true,
+            },
+        },
+    },
+    settings = {
+        ['luau-lsp'] = {
+            completion = {
+                imports = {
+                    enabled = true,
+                },
+            },
+        },
+    },
+})
 
 from_vscode.lazy_load()
 luasnip.config.setup()
