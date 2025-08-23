@@ -44,6 +44,7 @@ vim.opt.listchars = {
     nbsp = '+',
 }
 
+vim.opt.cursorline = true
 vim.opt.guicursor = "n-v-c-ci-sm:block,i-ve:ver25,r-cr-o:hor20"
 
 vim.opt.wrap = true
@@ -97,16 +98,8 @@ require("lazy").setup({
             }
         }
     },
-    {
-        'sainnhe/gruvbox-material',
-        config = function()
-            vim.g.gruvbox_material_background = 'hard'
-            vim.g.gruvbox_material_foreground = 'material'
-            vim.g.gruvbox_material_enable_italic = true
-            vim.cmd('colorscheme gruvbox-material')
-        end,
-    },
     { 'nvim-neotest/nvim-nio' },
+    { "ellisonleao/gruvbox.nvim" },
 
     { 'ibhagwan/fzf-lua' },
 
@@ -131,6 +124,17 @@ require("lazy").setup({
     { 'leoluz/nvim-dap-go' },
     { 'rcarriga/nvim-dap-ui' },
 })
+
+
+
+
+local gruvbox = require("gruvbox")
+gruvbox.setup({
+    overrides = {
+        SignColumn = { bg = gruvbox.palette.dark0 },
+    },
+})
+vim.cmd("colorscheme gruvbox")
 
 
 
