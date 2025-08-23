@@ -25,7 +25,6 @@
 -- TODO use the git blame from gitsigns
 -- TODO try nvim oil
 -- TODO try undo tree
--- TODO try blink cmp
 -- TODO add treesitter movement binds
 
 vim.opt.number = true
@@ -108,7 +107,6 @@ require("lazy").setup({
             vim.cmd('colorscheme gruvbox-material')
         end,
     },
-
     { 'nvim-neotest/nvim-nio' },
 
     { 'ibhagwan/fzf-lua' },
@@ -122,22 +120,12 @@ require("lazy").setup({
     { 'lewis6991/gitsigns.nvim' },
     { 'tpope/vim-fugitive' },
 
-    { 'neovim/nvim-lspconfig' },
     { 'williamboman/mason.nvim' },
-    { 'williamboman/mason-lspconfig.nvim' },
-
-    { 'hrsh7th/nvim-cmp' },
-    { 'hrsh7th/cmp-buffer' },
-    { 'hrsh7th/cmp-path' },
-    { 'hrsh7th/cmp-cmdline' },
-    { 'hrsh7th/cmp-nvim-lsp' },
-    { 'hrsh7th/cmp-nvim-lua' },
-    { 'saadparwaiz1/cmp_luasnip' },
-
-    { 'L3MON4D3/LuaSnip' },
-    { 'rafamadriz/friendly-snippets' },
-
+    { 'neovim/nvim-lspconfig' },
     { 'lopi-py/luau-lsp.nvim' },
+
+    { 'saghen/blink.cmp' },
+    { 'rafamadriz/friendly-snippets' },
 
     { 'github/copilot.vim' },
 
@@ -191,7 +179,7 @@ fzf_lua.setup({
     },
 })
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
-vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep_glob, {})
+vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
 vim.keymap.set('v', '<leader>sg', fzf_lua.grep_visual, {})
 vim.keymap.set('n', '<leader>so', fzf_lua.oldfiles, {})
 vim.keymap.set('n', '<leader>sb', fzf_lua.buffers, {})
@@ -237,7 +225,7 @@ require'nvim-treesitter.configs'.setup({
 })
 require'treesitter-context'.setup({
     enable = true,
-    max_lines = 0,
+    max_lines = '50%',
     multiline_threshold = 1,
 })
 
@@ -283,14 +271,10 @@ vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', {})
 
 
 
+local mason = require('mason')
 local lspconfig = require('lspconfig')
 local luau_lsp = require('luau-lsp')
-local cmp_nvim_lsp = require('cmp_nvim_lsp')
-local mason = require('mason')
-local mason_lspconfig = require('mason-lspconfig')
-local cmp = require('cmp')
-local luasnip = require('luasnip')
-local from_vscode = require('luasnip.loaders.from_vscode')
+local blink_cmp = require('blink.cmp')
 
 vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(args)
@@ -314,19 +298,9 @@ vim.diagnostic.config({
     virtual_lines = false,
 })
 
-local capabilities = cmp_nvim_lsp.default_capabilities()
+local capabilities = blink_cmp.get_lsp_capabilities()
 
 mason.setup()
-mason_lspconfig.setup({
-    ensure_installed = {
-        'ts_ls',
-        'gopls',
-        'pyright',
-        'lua_ls',
-        'luau_lsp',
-    },
-    automatic_enable = false,
-})
 
 lspconfig.ts_ls.setup({
     capabilities = capabilities,
@@ -377,56 +351,29 @@ luau_lsp.config({
     },
 })
 
-from_vscode.lazy_load()
-luasnip.config.setup()
-cmp.setup({
-    snippet = {
-        expand = function(args)
-            luasnip.lsp_expand(args.body)
-        end
+blink_cmp.setup({
+    keymap = {
+        preset = 'default'
+    },
+    appearance = {
+        nerd_font_variant = 'mono'
     },
     completion = {
-        completeopt = 'menu,menuone,preview',
+        documentation = {
+            auto_show = true,
+            auto_show_delay_ms = 0,
+        },
+        menu = {
+            draw = {
+                columns = { { "label", "label_description", gap = 1 }, { "kind" } },
+            },
+        },
     },
-    mapping = cmp.mapping.preset.insert({
-        ['<C-n>'] = cmp.mapping.select_next_item(),
-        ['<C-p>'] = cmp.mapping.select_prev_item(),
-        ['<C-l>'] = cmp.mapping(function (original)
-            if luasnip.expand_or_jumpable() then
-                luasnip.jump(1)
-            else
-                original()
-            end
-        end),
-        ['<C-y>'] = cmp.mapping.confirm({ select = true }),
-        ['<C-Space>'] = cmp.mapping.complete(),
-        ['<C-e>'] = cmp.mapping.abort(),
-    }),
     sources = {
-        { name = 'nvim_lsp' },
-        { name = 'nvim_lua' },
-        { name = 'luasnip' },
-        { name = 'buffer' },
-        { name = 'path' },
+        default = { 'lsp', 'path', 'snippets', 'buffer' },
     },
-})
-cmp.setup.cmdline('/', {
-    mapping = cmp.mapping.preset.cmdline(),
-    sources = {
-        { name = 'buffer' },
-    },
-})
-cmp.setup.cmdline('?', {
-    mapping = cmp.mapping.preset.cmdline(),
-    sources = {
-        { name = 'buffer' },
-    },
-})
-cmp.setup.cmdline(':', {
-    mapping = cmp.mapping.preset.cmdline(),
-    sources = {
-        { name = 'path' },
-        { name = 'cmdline' },
+    fuzzy = {
+        implementation = "lua",
     },
 })
 
