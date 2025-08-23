@@ -22,7 +22,6 @@
 -- To return from command-line window with command: "<C-c>"
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 
--- TODO use the git blame from gitsigns
 -- TODO try nvim oil
 -- TODO try undo tree
 -- TODO add treesitter movement binds
@@ -118,7 +117,6 @@ require("lazy").setup({
     { 'nvim-treesitter/nvim-treesitter-context' },
 
     { 'lewis6991/gitsigns.nvim' },
-    { 'tpope/vim-fugitive' },
 
     { 'williamboman/mason.nvim' },
     { 'neovim/nvim-lspconfig' },
@@ -259,13 +257,13 @@ require('gitsigns').setup({
             { expr = true, buffer = bufnr }
         )
 
+        vim.keymap.set('n', '<leader>gb', gs.blame, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gr', gs.reset_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gp', gs.preview_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gs', gs.stage_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gu', gs.undo_stage_hunk, { buffer = bufnr })
     end,
 })
-vim.keymap.set('n', '<leader>gb', ':Git blame<CR>', {})
 
 
 
