@@ -1,0 +1,9 @@
+[font]
+size = 14.0
+
+[font.normal]
+family = "Menlo"
+style = "Regular"
+
+[selection]
+save_to_clipboard = true
