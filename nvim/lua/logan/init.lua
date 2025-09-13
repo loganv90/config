@@ -21,6 +21,7 @@
 -- To edit command-line command in command-line window: "<C-f>"
 -- To return from command-line window with command: "<C-c>"
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
+-- To open the link under the cursor in a browser: "gx"
 
 -- TODO try nvim oil
 -- TODO try undo tree
@@ -127,10 +128,18 @@ require("lazy").setup({
 
 
 
+
 local gruvbox = require("gruvbox")
 gruvbox.setup({
     overrides = {
         SignColumn = { bg = gruvbox.palette.dark0 },
+        GruvboxRedSign = { bg = gruvbox.palette.dark0 },
+        GruvboxGreenSign = { bg = gruvbox.palette.dark0 },
+        GruvboxYellowSign = { bg = gruvbox.palette.dark0 },
+        GruvboxBlueSign = { bg = gruvbox.palette.dark0 },
+        GruvboxPurpleSign = { bg = gruvbox.palette.dark0 },
+        GruvboxAquaSign = { bg = gruvbox.palette.dark0 },
+        GruvboxOrangeSign = { bg = gruvbox.palette.dark0 },
     },
 })
 vim.cmd("colorscheme gruvbox")
