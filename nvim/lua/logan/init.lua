@@ -23,7 +23,6 @@
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 -- To open the link under the cursor in a browser: "gx"
 
--- TODO try nvim oil
 -- TODO try undo tree
 -- TODO add treesitter movement binds
 
@@ -65,9 +64,6 @@ vim.opt.mouse = ''
 vim.g.mapleader = ' '
 vim.g.maplocalleader = '\\'
 
-vim.keymap.set('n', '-', ':Explore<CR>', {})
-vim.keymap.set('n', '+', ':tab split<CR>', {})
-
 
 
 
@@ -101,6 +97,7 @@ require("lazy").setup({
     { 'nvim-neotest/nvim-nio' },
     { "ellisonleao/gruvbox.nvim" },
 
+    { 'stevearc/oil.nvim' },
     { 'ibhagwan/fzf-lua' },
 
     {
@@ -143,6 +140,20 @@ gruvbox.setup({
     },
 })
 vim.cmd("colorscheme gruvbox")
+
+
+
+
+
+require("oil").setup({
+    default_file_explorer = true,
+    columns = {},
+    view_options = {
+        show_hidden = true,
+    },
+})
+vim.keymap.set("n", "-", "<CMD>Oil<CR>", {})
+vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
 
 
 
