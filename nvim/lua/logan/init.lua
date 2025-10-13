@@ -159,6 +159,8 @@ vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
 
 
 
+-- To toggle fzf wrap: ctrl-/ or alt-/ or ctrl-_ or ctrl--
+-- To set default wrap for fzf-lua: fzf_opts = { ['--wrap'] = true, }
 local fzf_lua = require('fzf-lua')
 fzf_lua.setup({
     winopts = {
@@ -173,6 +175,7 @@ fzf_lua.setup({
             vertical = 'up:50%',
             horizontal = 'right:50%',
             layout = 'flex',
+            wrap = true,
         },
     },
     fzf_opts = {

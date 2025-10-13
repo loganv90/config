@@ -7,3 +7,10 @@ style = "Regular"
 
 [selection]
 save_to_clipboard = true
+
+# The following fixes ctrl-/ on macOS with Alacritty, but we can alternatively use ctrl-_ or ctrl--:
+# [keyboard]
+# bindings = [
+#   { key = "Slash", mods = "Control", chars = "\u001f" }
+# ]
+
