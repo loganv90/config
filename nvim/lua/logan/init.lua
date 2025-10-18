@@ -23,10 +23,8 @@
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 -- To open the link under the cursor in a browser: "gx"
 -- To open the file path under the cursor in vim: "gf"
-
--- TODO try undo tree
--- TODO add treesitter movement binds
--- TODO add finder for hunks
+-- To view undo branches: ":undolist"
+-- To jump to an undo branch: ":undo {number}"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -161,8 +159,6 @@ vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
 
 
 
--- To toggle fzf wrap: ctrl-/ or alt-/ or ctrl-_ or ctrl--
--- To set default wrap for fzf-lua: fzf_opts = { ['--wrap'] = true, }
 local fzf_lua = require('fzf-lua')
 fzf_lua.setup({
     winopts = {
@@ -201,11 +197,17 @@ fzf_lua.setup({
 
             ["ctrl-a"] = "toggle-all",
             ["tab"] = "toggle",
-        }
+        },
+        -- To toggle fzf wrap: ctrl-/ or alt-/ or ctrl-_ or ctrl--
+        -- To toggle preview wrap: F3
+        -- To toggle preview: F4
     },
     previewers = {
         git_diff = {
-            cmd_modified = "if [[ $(git diff {file}) ]]; then git diff --color {file}; else git diff --color HEAD {file}; fi",
+            cmd_modified = "if [[ $(git diff {file}) ]]; " ..
+            "then git diff --color {file} && echo '\n\n\n' && git diff --color HEAD {file}; " ..
+            "else git diff --color HEAD {file}; " ..
+            "fi",
         },
     },
     git = {
@@ -261,11 +263,45 @@ require'nvim-treesitter.configs'.setup({
         enable = true,
     },
 })
+
 require'treesitter-context'.setup({
     enable = true,
     max_lines = '50%',
     multiline_threshold = 1,
 })
+
+local ts_utils = require("nvim-treesitter.ts_utils")
+
+local function ts_goto_parent()
+    local node = ts_utils.get_node_at_cursor()
+    if not node then
+        print("TS: No node found at cursor")
+        return
+    end
+
+    local parent = node:parent()
+    if not parent then
+        print("TS: No parent node found")
+        return
+    end
+
+    local node_start_row, node_start_column = node:range()
+    local parent_start_row, parent_start_column = parent:range()
+    local root = ts_utils.get_root_for_node(node)
+
+    while node_start_row == parent_start_row and node_start_column == parent_start_column and parent ~= root do
+        parent = parent:parent()
+        if not parent then
+            print("TS: No further parent node found")
+            return
+        end
+        parent_start_row, parent_start_column = parent:range()
+    end
+
+    ts_utils.goto_node(parent)
+end
+
+vim.keymap.set("n", "<leader>t", ts_goto_parent, {})
 
 
 
@@ -282,7 +318,7 @@ require('gitsigns').setup({
                 if vim.wo.diff then
                     vim.cmd.normal({'[c', bang = true})
                 else
-                    gs.nav_hunk('prev', {target = 'all'})
+                    gs.nav_hunk('prev')
                 end
             end,
             { buffer = bufnr, }
@@ -295,7 +331,7 @@ require('gitsigns').setup({
                 if vim.wo.diff then
                     vim.cmd.normal({']c', bang = true})
                 else
-                    gs.nav_hunk('next', {target = 'all'})
+                    gs.nav_hunk('next')
                 end
             end,
             { buffer = bufnr, }
@@ -305,7 +341,6 @@ require('gitsigns').setup({
         vim.keymap.set('n', '<leader>gr', gs.reset_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gp', gs.preview_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gs', gs.stage_hunk, { buffer = bufnr })
-        vim.keymap.set('n', '<leader>gu', gs.undo_stage_hunk, { buffer = bufnr })
     end,
 })
 
@@ -314,7 +349,6 @@ require('gitsigns').setup({
 
 
 local mason = require('mason')
-local lspconfig = require('lspconfig')
 local luau_lsp = require('luau-lsp')
 local blink_cmp = require('blink.cmp')
 
@@ -344,19 +378,19 @@ local capabilities = blink_cmp.get_lsp_capabilities()
 
 mason.setup()
 
-lspconfig.ts_ls.setup({
+vim.lsp.config('ts_ls', {
     capabilities = capabilities,
     settings = {},
 })
-lspconfig.gopls.setup({
+vim.lsp.config('gopls', {
     capabilities = capabilities,
     settings = {},
 })
-lspconfig.pyright.setup({
+vim.lsp.config('pyright', {
     capabilities = capabilities,
     settings = {},
 })
-lspconfig.lua_ls.setup({
+vim.lsp.config('lua_ls', {
     capabilities = capabilities,
     settings = {
         Lua = {
@@ -366,14 +400,22 @@ lspconfig.lua_ls.setup({
         },
     },
 })
-lspconfig.rust_analyzer.setup({
+vim.lsp.config('rust_analyzer', {
     capabilities = capabilities,
     settings = {},
 })
-lspconfig.clangd.setup({
+vim.lsp.config('clangd', {
     capabilities = capabilities,
     settings = {},
 })
+
+vim.lsp.enable('ts_ls')
+vim.lsp.enable('gopls')
+vim.lsp.enable('pyright')
+vim.lsp.enable('lua_ls')
+vim.lsp.enable('rust_analyzer')
+vim.lsp.enable('clangd')
+
 luau_lsp.config({
     capabilities = {
         workspace = {
