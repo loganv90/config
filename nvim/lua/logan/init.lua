@@ -22,9 +22,11 @@
 -- To return from command-line window with command: "<C-c>"
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 -- To open the link under the cursor in a browser: "gx"
+-- To open the file path under the cursor in vim: "gf"
 
 -- TODO try undo tree
 -- TODO add treesitter movement binds
+-- TODO add finder for hunks
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -201,6 +203,18 @@ fzf_lua.setup({
             ["tab"] = "toggle",
         }
     },
+    previewers = {
+        git_diff = {
+            cmd_modified = "if [[ $(git diff {file}) ]]; then git diff --color {file}; else git diff --color HEAD {file}; fi",
+        },
+    },
+    git = {
+        status = {
+            actions = {
+                ["ctrl-x"] = false,
+            },
+        },
+    },
 })
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
 vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
@@ -265,22 +279,26 @@ require('gitsigns').setup({
             'n',
             '[c',
             function()
-                if vim.wo.diff then return '[c' end
-                vim.schedule(function() gs.prev_hunk() end)
-                return '<Ignore>'
+                if vim.wo.diff then
+                    vim.cmd.normal({'[c', bang = true})
+                else
+                    gs.nav_hunk('prev', {target = 'all'})
+                end
             end,
-            { expr = true, buffer = bufnr, }
+            { buffer = bufnr, }
         )
 
         vim.keymap.set(
             'n',
             ']c',
             function()
-                if vim.wo.diff then return ']c' end
-                vim.schedule(function() gs.next_hunk() end)
-                return '<Ignore>'
+                if vim.wo.diff then
+                    vim.cmd.normal({']c', bang = true})
+                else
+                    gs.nav_hunk('next', {target = 'all'})
+                end
             end,
-            { expr = true, buffer = bufnr }
+            { buffer = bufnr, }
         )
 
         vim.keymap.set('n', '<leader>gb', gs.blame, { buffer = bufnr })
