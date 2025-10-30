@@ -26,6 +26,9 @@
 -- To view undo branches: ":undolist"
 -- To jump to an undo branch: ":undo {number}"
 
+-- TODO: remove item from quickfix list
+-- TODO: close all buffers not open in some window
+
 vim.opt.number = true
 vim.opt.relativenumber = true
 
@@ -151,6 +154,9 @@ require("oil").setup({
     view_options = {
         show_hidden = true,
     },
+    win_options = {
+        wrap = true,
+    },
 })
 vim.keymap.set("n", "-", "<CMD>Oil<CR>", {})
 vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
@@ -204,10 +210,16 @@ fzf_lua.setup({
     },
     previewers = {
         git_diff = {
-            cmd_modified = "if [[ $(git diff {file}) ]]; " ..
-            "then git diff --color {file} && echo '\n\n\n' && git diff --color HEAD {file}; " ..
-            "else git diff --color HEAD {file}; " ..
-            "fi",
+            cmd_modified = "" ..
+            "echo 'Changes not staged using word diff:'; " ..
+            "git diff --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file} | sed 's/^/    /'; " ..
+            "echo 'Changes not staged:'; " ..
+            "git diff --color {file} | sed 's/^/    /'; " ..
+            "echo 'Changes staged using word diff:'; " ..
+            "git diff --staged --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file} | sed 's/^/    /'; " ..
+            "echo 'Changes staged:'; " ..
+            "git diff --staged --color {file} | sed 's/^/    /'; " ..
+            "",
         },
     },
     git = {
