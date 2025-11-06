@@ -4,6 +4,7 @@
 -- To see Mason installs, ":Mason"
 -- To see Lazy installs, ":Lazy"
 -- To see LSP status, ":LspInfo"
+-- To see Treesitter info at cursor, ":Inspect"
 -- To see all keymaps, ":h index"
 -- To run command, ":'<,'>norm {command}"
 -- To run command in matching lines, ":'<,'>g/{pattern}/norm {command}"
@@ -21,13 +22,14 @@
 -- To edit command-line command in command-line window: "<C-f>"
 -- To return from command-line window with command: "<C-c>"
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
+-- To set and jump to marks: "m{mark}", "'{mark}", "`{mark}"
 -- To open the link under the cursor in a browser: "gx"
--- To open the file path under the cursor in vim: "gf"
--- To view undo branches: ":undolist"
+-- To open the file path under the cursor in vim: "gf", "<C-w>f", "<C-w>gf"
+-- To view undo branches: ":undol", ":undolist"
 -- To jump to an undo branch: ":undo {number}"
-
--- TODO: remove item from quickfix list
--- TODO: close all buffers not open in some window
+-- To move to item in quickfix list: ":cc{number}"
+-- To see quickfix list history: ":chi", ":chistory"
+-- To switch to quickfix list from history: ":{number}chi"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -67,6 +69,9 @@ vim.opt.mouse = ''
 vim.g.mapleader = ' '
 vim.g.maplocalleader = '\\'
 
+vim.keymap.set("n", "-", "<CMD>Explore<CR>", {})
+vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
+
 
 
 
@@ -100,14 +105,12 @@ require("lazy").setup({
     { 'nvim-neotest/nvim-nio' },
     { "ellisonleao/gruvbox.nvim" },
 
-    { 'stevearc/oil.nvim' },
     { 'ibhagwan/fzf-lua' },
 
     {
         'nvim-treesitter/nvim-treesitter',
         build = ':TSUpdate',
     },
-    { 'nvim-treesitter/nvim-treesitter-context' },
 
     { 'lewis6991/gitsigns.nvim' },
 
@@ -143,23 +146,6 @@ gruvbox.setup({
     },
 })
 vim.cmd("colorscheme gruvbox")
-
-
-
-
-
-require("oil").setup({
-    default_file_explorer = true,
-    columns = {},
-    view_options = {
-        show_hidden = true,
-    },
-    win_options = {
-        wrap = true,
-    },
-})
-vim.keymap.set("n", "-", "<CMD>Oil<CR>", {})
-vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
 
 
 
@@ -274,12 +260,6 @@ require'nvim-treesitter.configs'.setup({
     highlight = {
         enable = true,
     },
-})
-
-require'treesitter-context'.setup({
-    enable = true,
-    max_lines = '50%',
-    multiline_threshold = 1,
 })
 
 local ts_utils = require("nvim-treesitter.ts_utils")
