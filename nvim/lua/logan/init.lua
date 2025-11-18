@@ -30,6 +30,12 @@
 -- To move to item in quickfix list: ":cc{number}"
 -- To see quickfix list history: ":chi", ":chistory"
 -- To switch to quickfix list from history: ":{number}chi"
+-- To get a list of recent buffers: ":ls", ":ls t"
+-- To get a list of previous files: ":browse oldfiles", ":bro ol"
+-- To get a list of all keymaps: ":map"
+-- To search through command history: "q:"
+-- To search through search history: "q/"
+-- To list available commands: ":<C-d>", ":<C-space>"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -196,16 +202,7 @@ fzf_lua.setup({
     },
     previewers = {
         git_diff = {
-            cmd_modified = "" ..
-            "echo 'Changes not staged using word diff:'; " ..
-            "git diff --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file} | sed 's/^/    /'; " ..
-            "echo 'Changes not staged:'; " ..
-            "git diff --color {file} | sed 's/^/    /'; " ..
-            "echo 'Changes staged using word diff:'; " ..
-            "git diff --staged --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file} | sed 's/^/    /'; " ..
-            "echo 'Changes staged:'; " ..
-            "git diff --staged --color {file} | sed 's/^/    /'; " ..
-            "",
+            cmd_modified = "git diff --color HEAD --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}",
         },
     },
     git = {
@@ -219,18 +216,9 @@ fzf_lua.setup({
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
 vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
 vim.keymap.set('v', '<leader>sg', fzf_lua.grep_visual, {})
-vim.keymap.set('n', '<leader>so', fzf_lua.oldfiles, {})
-vim.keymap.set('n', '<leader>sb', fzf_lua.buffers, {})
-vim.keymap.set('n', '<leader>st', fzf_lua.tabs, {})
-vim.keymap.set('n', '<leader>sk', fzf_lua.keymaps, {})
-vim.keymap.set('n', '<leader>sd', fzf_lua.diagnostics_workspace, {})
 vim.keymap.set('n', '<leader>ss', fzf_lua.git_status, {})
-vim.keymap.set('n', '<leader>st', fzf_lua.search_history, {})
-vim.keymap.set('n', '<leader>sc', fzf_lua.command_history, {})
-vim.keymap.set('n', '<leader>sr', fzf_lua.resume, {})
-vim.keymap.set('n', '<leader>sh', fzf_lua.helptags, {})
-vim.keymap.set('n', '<leader>sec', function () fzf_lua.live_grep({ cwd=vim.fn.stdpath('config') }) end, {})
-vim.keymap.set('n', '<leader>sep', function () fzf_lua.live_grep({ cwd=vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
+vim.keymap.set('n', '<leader>scg', function () fzf_lua.live_grep({ cwd=vim.fn.stdpath('config') }) end, {}) -- config source code
+vim.keymap.set('n', '<leader>spg', function () fzf_lua.live_grep({ cwd=vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {}) -- plugin source code
 
 
 
@@ -352,6 +340,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         vim.keymap.set('n', '<leader>li', fzf_lua.lsp_implementations, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>ls', fzf_lua.lsp_document_symbols, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>lt', fzf_lua.lsp_typedefs, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>le', fzf_lua.lsp_workspace_diagnostics, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })
