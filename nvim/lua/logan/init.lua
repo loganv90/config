@@ -36,6 +36,8 @@
 -- To search through command history: "q:"
 -- To search through search history: "q/"
 -- To list available commands: ":<C-d>", ":<C-space>"
+-- To create and start editing a new file: ":e {filename}"
+-- To execute the current file as bash script: ":!chmod +x %", ":!bash %:p"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -160,19 +162,19 @@ vim.cmd("colorscheme gruvbox")
 local fzf_lua = require('fzf-lua')
 fzf_lua.setup({
     winopts = {
-        width = 0.5,
-        height = 1,
-        row = 0.5,
-        col = 1,
-        fullscreen = true,
-        backdrop = 100,
         border = 'none',
+        backdrop = 100,
+        fullscreen = true,
         preview = {
+            border = 'none',
+            wrap = true,
             vertical = 'up:50%',
             horizontal = 'right:50%',
             layout = 'flex',
-            wrap = true,
         },
+        on_create = function()
+            vim.keymap.set("t", "<C-r>", [['<C-\><C-N>"'.nr2char(getchar()).'pi']], { expr = true, buffer = true })
+        end,
     },
     fzf_opts = {
         ['--layout'] = 'default',
@@ -197,6 +199,8 @@ fzf_lua.setup({
             ["tab"] = "toggle",
         },
         -- To toggle fzf wrap: ctrl-/ or alt-/ or ctrl-_ or ctrl--
+        -- To toggle help: F1
+        -- To toggle fullscreen: F2
         -- To toggle preview wrap: F3
         -- To toggle preview: F4
     },
@@ -215,10 +219,10 @@ fzf_lua.setup({
 })
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
 vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
-vim.keymap.set('v', '<leader>sg', fzf_lua.grep_visual, {})
 vim.keymap.set('n', '<leader>ss', fzf_lua.git_status, {})
-vim.keymap.set('n', '<leader>scg', function () fzf_lua.live_grep({ cwd=vim.fn.stdpath('config') }) end, {}) -- config source code
-vim.keymap.set('n', '<leader>spg', function () fzf_lua.live_grep({ cwd=vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {}) -- plugin source code
+vim.keymap.set('n', '<leader>sh', fzf_lua.git_hunks, {})
+vim.keymap.set('n', '<leader>scg', function () fzf_lua.live_grep({ cwd=vim.fn.stdpath('config') }) end, {})
+vim.keymap.set('n', '<leader>spg', function () fzf_lua.live_grep({ cwd=vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
 
 
@@ -298,7 +302,7 @@ require('gitsigns').setup({
                 if vim.wo.diff then
                     vim.cmd.normal({'[c', bang = true})
                 else
-                    gs.nav_hunk('prev')
+                    gs.nav_hunk('prev', {target = 'all'})
                 end
             end,
             { buffer = bufnr, }
@@ -311,7 +315,7 @@ require('gitsigns').setup({
                 if vim.wo.diff then
                     vim.cmd.normal({']c', bang = true})
                 else
-                    gs.nav_hunk('next')
+                    gs.nav_hunk('next', {target = 'all'})
                 end
             end,
             { buffer = bufnr, }
