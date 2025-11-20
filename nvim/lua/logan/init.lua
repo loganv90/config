@@ -206,7 +206,12 @@ fzf_lua.setup({
     },
     previewers = {
         git_diff = {
-            cmd_modified = "git diff --color HEAD --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}",
+            cmd_modified = "" ..
+            "output=$(" ..
+            "git diff --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}" ..
+            "); if [ -z \"$output\" ]; then output=$(" ..
+            "git diff --color HEAD --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}" ..
+            "); fi; printf \"%s\" \"$output\"",
         },
     },
     git = {
@@ -219,10 +224,10 @@ fzf_lua.setup({
 })
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
 vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
-vim.keymap.set('n', '<leader>ss', fzf_lua.git_status, {})
-vim.keymap.set('n', '<leader>sh', fzf_lua.git_hunks, {})
-vim.keymap.set('n', '<leader>scg', function () fzf_lua.live_grep({ cwd=vim.fn.stdpath('config') }) end, {})
-vim.keymap.set('n', '<leader>spg', function () fzf_lua.live_grep({ cwd=vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
+vim.keymap.set('n', '<leader>ss', function () fzf_lua.git_status({ fzf_opts = {['--layout'] = 'reverse'} }) end, {})
+vim.keymap.set('n', '<leader>sd', function () fzf_lua.git_hunks({ fzf_opts = {['--layout'] = 'reverse', ['--delimiter'] = ':', ['--nth'] = '1..'} }) end, {})
+vim.keymap.set('n', '<leader>scg', function () fzf_lua.live_grep({ cwd = vim.fn.stdpath('config') }) end, {})
+vim.keymap.set('n', '<leader>spg', function () fzf_lua.live_grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
 
 
@@ -256,36 +261,144 @@ require'nvim-treesitter.configs'.setup({
 
 local ts_utils = require("nvim-treesitter.ts_utils")
 
-local function ts_goto_parent()
+local function ts_get_first_moved_parent(node)
+    local root = ts_utils.get_root_for_node(node)
+
+    while true do
+        local parent = node:parent()
+        if not parent then
+            break
+        end
+
+        local rs, cs, re, ce = node:range()
+        local prs, pcs, pre, pce = parent:range()
+        if not ((rs == prs and cs == pcs) or (re == pre and ce == pce)) or parent == root then
+            return parent
+        end
+
+        node = parent
+    end
+
+    return node
+end
+
+local function ts_get_parent_at_position(node)
+    local root = ts_utils.get_root_for_node(node)
+
+    while true do
+        local parent = node:parent()
+        if not parent then
+            break
+        end
+
+        local rs, cs, re, ce = node:range()
+        local prs, pcs, pre, pce = parent:range()
+        if not ((rs == prs and cs == pcs) or (re == pre and ce == pce)) or parent == root then
+            break
+        end
+
+        node = parent
+    end
+
+    return node
+end
+
+local function ts_cursor_at_node_start(node)
+    local rc, cc = vim.fn.line('.') - 1, vim.fn.col('.') - 1
+    local r, c, _, _ = node:range()
+    return rc == r and cc == c
+end
+
+local function ts_cursor_at_node_end(node)
+    local rc, cc = vim.fn.line('.') - 1, vim.fn.col('.')
+    local _, _, r, c = node:range()
+    return rc == r and cc == c
+end
+
+local function ts_get_node_at_cursor()
+    local jumped_forward = false
+    while true do
+        local captures = vim.treesitter.get_captures_at_cursor()
+        if #captures > 0 then
+            break
+        end
+
+        vim.cmd("normal! W")
+        jumped_forward = true
+
+        local current_row, current_col, last_row = vim.fn.line('.'), vim.fn.col('.'), vim.fn.line('$')
+        local last_col = vim.fn.col({last_row, '$'})
+        if current_row == last_row and current_col == last_col then
+            break
+        end
+    end
+
     local node = ts_utils.get_node_at_cursor()
     if not node then
         print("TS: No node found at cursor")
+        return nil, jumped_forward
+    end
+
+    return node, jumped_forward
+end
+
+local function ts_goto_parent()
+    local node = ts_get_node_at_cursor()
+    if not node then
         return
     end
-
-    local parent = node:parent()
-    if not parent then
-        print("TS: No parent node found")
+    local parent = ts_get_parent_at_position(node)
+    if not ts_cursor_at_node_start(parent) then
+        ts_utils.goto_node(parent)
         return
     end
-
-    local node_start_row, node_start_column = node:range()
-    local parent_start_row, parent_start_column = parent:range()
-    local root = ts_utils.get_root_for_node(node)
-
-    while node_start_row == parent_start_row and node_start_column == parent_start_column and parent ~= root do
-        parent = parent:parent()
-        if not parent then
-            print("TS: No further parent node found")
-            return
-        end
-        parent_start_row, parent_start_column = parent:range()
-    end
-
+    parent = ts_get_first_moved_parent(parent)
     ts_utils.goto_node(parent)
 end
 
-vim.keymap.set("n", "<leader>t", ts_goto_parent, {})
+local function ts_goto_end()
+    local node = ts_get_node_at_cursor()
+    if not node then
+        return
+    end
+    local parent = ts_get_parent_at_position(node)
+    if not ts_cursor_at_node_end(parent) then
+        ts_utils.goto_node(parent, true)
+        return
+    end
+    ts_utils.goto_node(parent:next_sibling() or parent, true)
+end
+
+local function ts_goto_next()
+    local node, jumped_forward = ts_get_node_at_cursor()
+    if not node then
+        return
+    end
+    if jumped_forward then
+        return
+    end
+    local parent = ts_get_parent_at_position(node)
+    ts_utils.goto_node(parent:next_sibling() or parent)
+end
+
+local function ts_goto_prev()
+    local node = ts_get_node_at_cursor()
+    if not node then
+        return
+    end
+    local parent = ts_get_parent_at_position(node)
+    if not ts_cursor_at_node_start(parent) then
+        ts_utils.goto_node(parent)
+        return
+    end
+    ts_utils.goto_node(parent:prev_sibling() or parent)
+end
+
+vim.keymap.set("n", "<leader>tg", ts_goto_parent, {})
+vim.keymap.set("n", "<leader>te", ts_goto_end, {})
+vim.keymap.set("n", "<leader>tw", ts_goto_next, {})
+vim.keymap.set("n", "<leader>tb", ts_goto_prev, {})
+vim.keymap.set('n', '<leader>ts', function () fzf_lua.treesitter({ fzf_opts = {['--layout'] = 'reverse'} }) end, {})
 
 
 
@@ -302,7 +415,7 @@ require('gitsigns').setup({
                 if vim.wo.diff then
                     vim.cmd.normal({'[c', bang = true})
                 else
-                    gs.nav_hunk('prev', {target = 'all'})
+                    gs.nav_hunk('prev')
                 end
             end,
             { buffer = bufnr, }
@@ -315,16 +428,16 @@ require('gitsigns').setup({
                 if vim.wo.diff then
                     vim.cmd.normal({']c', bang = true})
                 else
-                    gs.nav_hunk('next', {target = 'all'})
+                    gs.nav_hunk('next')
                 end
             end,
             { buffer = bufnr, }
         )
 
         vim.keymap.set('n', '<leader>gb', gs.blame, { buffer = bufnr })
-        vim.keymap.set('n', '<leader>gr', gs.reset_hunk, { buffer = bufnr })
         vim.keymap.set('n', '<leader>gp', gs.preview_hunk, { buffer = bufnr })
-        vim.keymap.set('n', '<leader>gs', gs.stage_hunk, { buffer = bufnr })
+        vim.keymap.set('n', '<leader>gs', ":Gitsigns stage_hunk<CR>", { buffer = bufnr })
+        vim.keymap.set('n', '<leader>gr', ":Gitsigns reset_hunk<CR>", { buffer = bufnr })
     end,
 })
 
