@@ -24,7 +24,7 @@
 -- To edit macros, paste from and yank to registers: ""{register}p", ""{register}y"
 -- To set and jump to marks: "m{mark}", "'{mark}", "`{mark}"
 -- To open the link under the cursor in a browser: "gx"
--- To open the file path under the cursor in vim: "gf", "<C-w>f", "<C-w>gf"
+-- To open the file path under the cursor: "gf", "<C-w>f", "<C-w>gf"
 -- To view undo branches: ":undol", ":undolist"
 -- To jump to an undo branch: ":undo {number}"
 -- To move to item in quickfix list: ":cc{number}"
@@ -38,6 +38,7 @@
 -- To list available commands: ":<C-d>", ":<C-space>"
 -- To create and start editing a new file: ":e {filename}"
 -- To execute the current file as bash script: ":!chmod +x %", ":!bash %:p"
+-- To diff files and use changes: ":windo diffthis", ":bufdo diffoff", "dp", "do"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -160,6 +161,7 @@ vim.cmd("colorscheme gruvbox")
 
 
 local fzf_lua = require('fzf-lua')
+local fzf_lua_history_path = vim.fs.joinpath(vim.fn.stdpath('data'), 'fzf-lua-history')
 fzf_lua.setup({
     winopts = {
         border = 'none',
@@ -178,24 +180,21 @@ fzf_lua.setup({
     },
     fzf_opts = {
         ['--layout'] = 'default',
-        ['--history'] = vim.fs.joinpath(vim.fn.stdpath('data'), 'fzf-lua-history'),
+        ['--history'] = fzf_lua_history_path,
     },
     keymap = {
         builtin = {
             true,
-            ["<C-y>"] = "preview-up",
-            ["<C-e>"] = "preview-down",
             ["<C-u>"] = "preview-half-page-up",
             ["<C-d>"] = "preview-half-page-down",
         },
         fzf = {
             true,
-            ["ctrl-y"] = "preview-up",
-            ["ctrl-e"] = "preview-down",
+            ["ctrl-n"] = "down",
+            ["ctrl-p"] = "up",
             ["ctrl-u"] = "preview-half-page-up",
             ["ctrl-d"] = "preview-half-page-down",
-
-            ["ctrl-a"] = "toggle-all",
+            ["shift-tab"] = "toggle-all",
             ["tab"] = "toggle",
         },
         -- To toggle fzf wrap: ctrl-/ or alt-/ or ctrl-_ or ctrl--
@@ -211,7 +210,7 @@ fzf_lua.setup({
             "git diff --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}" ..
             "); if [ -z \"$output\" ]; then output=$(" ..
             "git diff --color HEAD --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}" ..
-            "); fi; printf \"%s\" \"$output\"",
+            "); fi; printf \"%s\\n\" \"$output\"",
         },
     },
     git = {
@@ -222,6 +221,35 @@ fzf_lua.setup({
         },
     },
 })
+local function fzf_lua_search_history()
+    local lines = {}
+    local seen_lines = {}
+    for line in io.lines(fzf_lua_history_path) do
+        if seen_lines[line] == nil then
+            seen_lines[line] = true
+            table.insert(lines, line)
+        end
+    end
+    if #lines <= 0 then
+        print("FZF-LUA: No search history found")
+        return
+    end
+
+    local opts = {
+        fzf_opts = {
+            ['--tac'] = true,
+            ['--no-sort'] = true,
+        },
+        actions = {
+            ['default'] = function(selected)
+                vim.fn.setreg('"', selected[1])
+            end,
+        },
+    }
+
+    fzf_lua.fzf_exec(lines, opts)
+end
+vim.keymap.set('n', '<leader>sh', fzf_lua_search_history, {})
 vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
 vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
 vim.keymap.set('n', '<leader>ss', function () fzf_lua.git_status({ fzf_opts = {['--layout'] = 'reverse'} }) end, {})
