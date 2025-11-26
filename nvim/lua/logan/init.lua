@@ -118,7 +118,10 @@ require("lazy").setup({
     { 'nvim-neotest/nvim-nio' },
     { "ellisonleao/gruvbox.nvim" },
 
-    { 'ibhagwan/fzf-lua' },
+    {
+        'folke/snacks.nvim',
+        priority = 1000,
+    },
 
     {
         'nvim-treesitter/nvim-treesitter',
@@ -164,102 +167,66 @@ vim.cmd("colorscheme gruvbox")
 
 
 
-local fzf_lua = require('fzf-lua')
-local fzf_lua_history_path = vim.fs.joinpath(vim.fn.stdpath('data'), 'fzf-lua-history')
-fzf_lua.setup({
-    winopts = {
-        border = 'none',
-        backdrop = 100,
-        fullscreen = true,
-        preview = {
-            border = 'none',
-            wrap = true,
-            vertical = 'up:50%',
-            horizontal = 'right:50%',
-            layout = 'flex',
+local snacks = require('snacks')
+snacks.setup({
+    picker = {
+        prompt = "> ",
+        win = {
+            input = {
+                keys = {
+                    ["<c-n>"] = { "history_forward", mode = { "i", "n" } },
+                    ["<c-p>"] = { "history_back", mode = { "i", "n" } },
+                    ["<c-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
+                    ["<c-d>"] = { "preview_scroll_down", mode = { "i", "n" } },
+                    ["<c-b>"] = { "list_scroll_up", mode = { "i", "n" } },
+                    ["<c-f>"] = { "list_scroll_down", mode = { "i", "n" } },
+                },
+            },
         },
-        on_create = function()
-            vim.keymap.set("t", "<C-r>", [['<C-\><C-N>"'.nr2char(getchar()).'pi']], { expr = true, buffer = true })
-        end,
-    },
-    fzf_opts = {
-        ['--layout'] = 'default',
-        ['--history'] = fzf_lua_history_path,
-    },
-    keymap = {
-        builtin = {
-            true,
-            ["<C-u>"] = "preview-half-page-up",
-            ["<C-d>"] = "preview-half-page-down",
+        layout = {
+            fullscreen = true,
+            layout = {
+                box = "horizontal",
+                {
+                    box = "vertical",
+                    border = "right",
+                    { win = "input", border = "none", height = 1 },
+                    { win = "list", border = "none" },
+                },
+                { win = "preview", border = "none", width = 0.5 },
+            },
         },
-        fzf = {
-            true,
-            ["ctrl-n"] = "down",
-            ["ctrl-p"] = "up",
-            ["ctrl-u"] = "preview-half-page-up",
-            ["ctrl-d"] = "preview-half-page-down",
-            ["shift-tab"] = "toggle-all",
-            ["tab"] = "toggle",
+        icons = {
+            files = {
+                enabled = false,
+            },
+            diagnostics = {
+                Error = "E ",
+                Warn  = "W ",
+                Hint  = "H ",
+                Info  = "I ",
+            },
         },
-        -- To toggle fzf wrap: ctrl-/ or alt-/ or ctrl-_ or ctrl--
-        -- To toggle help: F1
-        -- To toggle fullscreen: F2
-        -- To toggle preview wrap: F3
-        -- To toggle preview: F4
-    },
-    previewers = {
-        git_diff = {
-            cmd_modified = "" ..
-            "output=$(" ..
-            "git diff --color --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}" ..
-            "); if [ -z \"$output\" ]; then output=$(" ..
-            "git diff --color HEAD --word-diff-regex='[[:space:]]|[^[:space:]]+' {file}" ..
-            "); fi; printf \"%s\\n\" \"$output\"",
-        },
-    },
-    git = {
-        status = {
-            actions = {
-                ["ctrl-x"] = false,
+        previewers = {
+            diff = {
+                style = "syntax",
             },
         },
     },
+    -- To toggle live grep: ctrl-g
+    -- To toggle preview: alt-p
+    -- To toggle help: ?
+    -- To open in new tab: ctrl-t
+    -- To open in split: ctrl-s
+    -- To open in vsplit: ctrl-v
+    -- To open in quickfix: ctrl-q
 })
-local function fzf_lua_search_history()
-    local lines = {}
-    local seen_lines = {}
-    for line in io.lines(fzf_lua_history_path) do
-        if seen_lines[line] == nil then
-            seen_lines[line] = true
-            table.insert(lines, line)
-        end
-    end
-    if #lines <= 0 then
-        print("FZF-LUA: No search history found")
-        return
-    end
-
-    local opts = {
-        fzf_opts = {
-            ['--tac'] = true,
-            ['--no-sort'] = true,
-        },
-        actions = {
-            ['default'] = function(selected)
-                vim.fn.setreg('"', selected[1])
-            end,
-        },
-    }
-
-    fzf_lua.fzf_exec(lines, opts)
-end
-vim.keymap.set('n', '<leader>sh', fzf_lua_search_history, {})
-vim.keymap.set('n', '<leader>sf', fzf_lua.files, {})
-vim.keymap.set('n', '<leader>sg', fzf_lua.live_grep, {})
-vim.keymap.set('n', '<leader>ss', function () fzf_lua.git_status({ fzf_opts = {['--layout'] = 'reverse'} }) end, {})
-vim.keymap.set('n', '<leader>sd', function () fzf_lua.git_hunks({ fzf_opts = {['--layout'] = 'reverse', ['--delimiter'] = ':', ['--nth'] = '1..'} }) end, {})
-vim.keymap.set('n', '<leader>scg', function () fzf_lua.live_grep({ cwd = vim.fn.stdpath('config') }) end, {})
-vim.keymap.set('n', '<leader>spg', function () fzf_lua.live_grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
+vim.keymap.set('n', '<leader>sf', function () snacks.picker.files() end, {})
+vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
+vim.keymap.set('n', '<leader>ss', function () snacks.picker.git_status() end, {})
+vim.keymap.set('n', '<leader>sd', function () snacks.picker.git_diff() end, {})
+vim.keymap.set('n', '<leader>scg', function () snacks.picker.grep({ cwd = vim.fn.stdpath('config') }) end, {})
+vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
 
 
@@ -430,7 +397,6 @@ vim.keymap.set("n", "<leader>tg", ts_goto_parent, {})
 vim.keymap.set("n", "<leader>te", ts_goto_end, {})
 vim.keymap.set("n", "<leader>tw", ts_goto_next, {})
 vim.keymap.set("n", "<leader>tb", ts_goto_prev, {})
-vim.keymap.set('n', '<leader>ts', function () fzf_lua.treesitter({ fzf_opts = {['--layout'] = 'reverse'} }) end, {})
 
 
 
@@ -484,12 +450,8 @@ local blink_cmp = require('blink.cmp')
 vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(args)
         local bufnr = args.buf
-        vim.keymap.set('n', '<leader>ld', fzf_lua.lsp_definitions, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>lr', fzf_lua.lsp_references, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>li', fzf_lua.lsp_implementations, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>ls', fzf_lua.lsp_document_symbols, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>lt', fzf_lua.lsp_typedefs, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>le', fzf_lua.lsp_workspace_diagnostics, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lr', function () snacks.picker.lsp_references() end, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>ld', function () snacks.picker.diagnostics() end, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })

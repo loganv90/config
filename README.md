@@ -9,7 +9,6 @@ includes config files for:
 prerequisites:
 - rg
 - fd
-- fzf
 
 installation:
 - ln -s pathToRepo/nvim ~/.config/nvim
