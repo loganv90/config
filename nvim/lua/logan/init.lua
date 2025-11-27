@@ -128,8 +128,6 @@ require("lazy").setup({
         build = ':TSUpdate',
     },
 
-    { 'lewis6991/gitsigns.nvim' },
-
     { 'williamboman/mason.nvim' },
     { 'neovim/nvim-lspconfig' },
     { 'lopi-py/luau-lsp.nvim' },
@@ -167,7 +165,28 @@ vim.cmd("colorscheme gruvbox")
 
 
 
+-- TODO when doing git_status, focus on the list item corresponding to the current file
+-- TODO when doing git_diff, focus on the list item corresponding to the closest hunk to the cursor line
+-- TODO when doing git_diff, add keymap to filter out staged hunks
+-- TOOD search for hidden files
 local snacks = require('snacks')
+---@param file string
+local snacks_git_diff_hunks = function (file)
+    snacks.picker.git_diff({
+        pattern = file,
+    })
+end
+local snacks_git_diff_files = function ()
+    snacks.picker.git_status({
+        win = {
+            input = {
+                keys = {
+                    ["<S-Tab>"] = { "open_git_diff_hunks", mode = { "n", "i" } }
+                }
+            }
+        }
+    })
+end
 snacks.setup({
     picker = {
         prompt = "> ",
@@ -210,7 +229,30 @@ snacks.setup({
         previewers = {
             diff = {
                 style = "syntax",
+                win = {
+                    input = {
+                        keys = {
+                            ["<c-n>"] = { function() print('this is my message') end, mode = { "i", "n" } },
+                        },
+                    },
+                },
             },
+        },
+        actions = {
+            open_git_diff_hunks = function(picker)
+                local item = picker:current()
+                if not item then
+                    return
+                end
+
+                local file = item.file
+                if not file then
+                    return
+                end
+
+                picker:close()
+                snacks_git_diff_hunks(file)
+            end,
         },
     },
     -- To toggle live grep: ctrl-g
@@ -223,8 +265,8 @@ snacks.setup({
 })
 vim.keymap.set('n', '<leader>sf', function () snacks.picker.files() end, {})
 vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
-vim.keymap.set('n', '<leader>ss', function () snacks.picker.git_status() end, {})
-vim.keymap.set('n', '<leader>sd', function () snacks.picker.git_diff() end, {})
+vim.keymap.set('n', '<leader>ss', function () snacks_git_diff_files() end, {})
+vim.keymap.set('n', '<leader>sd', function () snacks_git_diff_hunks(vim.fn.expand('%:.')) end, {})
 vim.keymap.set('n', '<leader>scg', function () snacks.picker.grep({ cwd = vim.fn.stdpath('config') }) end, {})
 vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
@@ -232,6 +274,10 @@ vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs
 
 
 
+-- TODO we should keep track of one treesitter node
+-- TODO we should a keybind to set the treesitter node to the node at the cursor
+-- TODO we should highlight the currently selected treesitter node
+-- TODO the movement functions should move the node we are keeping track of, not the node at the cursor
 require'nvim-treesitter.configs'.setup({
     ensure_installed = {
         "c",
@@ -402,47 +448,6 @@ vim.keymap.set("n", "<leader>tb", ts_goto_prev, {})
 
 
 
-require('gitsigns').setup({
-    on_attach = function(bufnr)
-        local gs = package.loaded.gitsigns
-
-        vim.keymap.set(
-            'n',
-            '[c',
-            function()
-                if vim.wo.diff then
-                    vim.cmd.normal({'[c', bang = true})
-                else
-                    gs.nav_hunk('prev')
-                end
-            end,
-            { buffer = bufnr, }
-        )
-
-        vim.keymap.set(
-            'n',
-            ']c',
-            function()
-                if vim.wo.diff then
-                    vim.cmd.normal({']c', bang = true})
-                else
-                    gs.nav_hunk('next')
-                end
-            end,
-            { buffer = bufnr, }
-        )
-
-        vim.keymap.set('n', '<leader>gb', gs.blame, { buffer = bufnr })
-        vim.keymap.set('n', '<leader>gp', gs.preview_hunk, { buffer = bufnr })
-        vim.keymap.set('n', '<leader>gs', ":Gitsigns stage_hunk<CR>", { buffer = bufnr })
-        vim.keymap.set('n', '<leader>gr', ":Gitsigns reset_hunk<CR>", { buffer = bufnr })
-    end,
-})
-
-
-
-
-
 local mason = require('mason')
 local luau_lsp = require('luau-lsp')
 local blink_cmp = require('blink.cmp')
@@ -451,7 +456,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
     callback = function(args)
         local bufnr = args.buf
         vim.keymap.set('n', '<leader>lr', function () snacks.picker.lsp_references() end, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>ld', function () snacks.picker.diagnostics() end, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>le', function () snacks.picker.diagnostics() end, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })
