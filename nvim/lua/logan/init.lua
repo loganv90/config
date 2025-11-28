@@ -168,7 +168,7 @@ vim.cmd("colorscheme gruvbox")
 -- TODO when doing git_status, focus on the list item corresponding to the current file
 -- TODO when doing git_diff, focus on the list item corresponding to the closest hunk to the cursor line
 -- TODO when doing git_diff, add keymap to filter out staged hunks
--- TOOD search for hidden files
+-- TODO add visual mode binds for files and grep
 local snacks = require('snacks')
 ---@param file string
 local snacks_git_diff_hunks = function (file)
@@ -263,7 +263,7 @@ snacks.setup({
     -- To open in vsplit: ctrl-v
     -- To open in quickfix: ctrl-q
 })
-vim.keymap.set('n', '<leader>sf', function () snacks.picker.files() end, {})
+vim.keymap.set('n', '<leader>sf', function () snacks.picker.files({ hidden = true }) end, {})
 vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
 vim.keymap.set('n', '<leader>ss', function () snacks_git_diff_files() end, {})
 vim.keymap.set('n', '<leader>sd', function () snacks_git_diff_hunks(vim.fn.expand('%:.')) end, {})
@@ -274,10 +274,6 @@ vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs
 
 
 
--- TODO we should keep track of one treesitter node
--- TODO we should a keybind to set the treesitter node to the node at the cursor
--- TODO we should highlight the currently selected treesitter node
--- TODO the movement functions should move the node we are keeping track of, not the node at the cursor
 require'nvim-treesitter.configs'.setup({
     ensure_installed = {
         "c",
@@ -306,143 +302,161 @@ require'nvim-treesitter.configs'.setup({
 
 local ts_utils = require("nvim-treesitter.ts_utils")
 
-local function ts_get_first_moved_parent(node)
-    local root = ts_utils.get_root_for_node(node)
+---@type TSNode|nil
+local ts_current_node = nil
+---@type integer|nil
+local ts_current_buffer = nil
+---@type integer
+local ts_ns_id = vim.api.nvim_create_namespace("ts_current_node_highlights")
 
-    while true do
-        local parent = node:parent()
-        if not parent then
-            break
-        end
-
-        local rs, cs, re, ce = node:range()
-        local prs, pcs, pre, pce = parent:range()
-        if not ((rs == prs and cs == pcs) or (re == pre and ce == pce)) or parent == root then
-            return parent
-        end
-
-        node = parent
+local function ts_util_clear_node()
+    if ts_current_buffer then
+        vim.api.nvim_buf_clear_namespace(ts_current_buffer, ts_ns_id, 0, -1)
     end
-
-    return node
 end
 
-local function ts_get_parent_at_position(node)
-    local root = ts_utils.get_root_for_node(node)
-
-    while true do
-        local parent = node:parent()
-        if not parent then
-            break
-        end
-
-        local rs, cs, re, ce = node:range()
-        local prs, pcs, pre, pce = parent:range()
-        if not ((rs == prs and cs == pcs) or (re == pre and ce == pce)) or parent == root then
-            break
-        end
-
-        node = parent
-    end
-
-    return node
+---@param node TSNode
+---@param buffer integer
+---@param ending boolean
+local function ts_util_set_node(node, buffer, ending)
+    ts_util_clear_node()
+    ts_current_node, ts_current_buffer = node, buffer
+    local start_row, start_col, end_row, end_col = node:range()
+    vim.api.nvim_buf_set_extmark(
+        buffer,
+        ts_ns_id,
+        start_row,
+        start_col,
+        {
+            end_line = end_row,
+            end_col = end_col,
+            hl_group = "Visual",
+        }
+    )
+    vim.api.nvim_win_set_buf(0, buffer)
+    vim.api.nvim_win_set_cursor(0, ending and { end_row + 1, end_col - 1 } or { start_row + 1, start_col })
 end
 
-local function ts_cursor_at_node_start(node)
-    local rc, cc = vim.fn.line('.') - 1, vim.fn.col('.') - 1
-    local r, c, _, _ = node:range()
-    return rc == r and cc == c
-end
-
-local function ts_cursor_at_node_end(node)
-    local rc, cc = vim.fn.line('.') - 1, vim.fn.col('.')
-    local _, _, r, c = node:range()
-    return rc == r and cc == c
-end
-
-local function ts_get_node_at_cursor()
-    local jumped_forward = false
+---@return TSNode|nil, integer|nil
+local function ts_util_get_node_at_cursor()
     while true do
         local captures = vim.treesitter.get_captures_at_cursor()
         if #captures > 0 then
             break
         end
-
         vim.cmd("normal! W")
-        jumped_forward = true
-
         local current_row, current_col, last_row = vim.fn.line('.'), vim.fn.col('.'), vim.fn.line('$')
         local last_col = vim.fn.col({last_row, '$'})
         if current_row == last_row and current_col == last_col then
             break
         end
     end
-
     local node = ts_utils.get_node_at_cursor()
     if not node then
+        return nil, nil
+    end
+    local bufnr = vim.api.nvim_get_current_buf()
+    return node, bufnr
+end
+
+local function ts_node_set()
+    local node, buffer = ts_util_get_node_at_cursor()
+    if not node or not buffer then
         print("TS: No node found at cursor")
-        return nil, jumped_forward
+        return
     end
-
-    return node, jumped_forward
+    ts_util_set_node(node, buffer, false)
 end
 
-local function ts_goto_parent()
-    local node = ts_get_node_at_cursor()
-    if not node then
-        return
-    end
-    local parent = ts_get_parent_at_position(node)
-    if not ts_cursor_at_node_start(parent) then
-        ts_utils.goto_node(parent)
-        return
-    end
-    parent = ts_get_first_moved_parent(parent)
-    ts_utils.goto_node(parent)
+local function ts_node_clear()
+    ts_util_clear_node()
 end
 
-local function ts_goto_end()
-    local node = ts_get_node_at_cursor()
-    if not node then
+local function ts_node_next()
+    if not ts_current_node or not ts_current_buffer then
+        print("TS: No current node set")
         return
     end
-    local parent = ts_get_parent_at_position(node)
-    if not ts_cursor_at_node_end(parent) then
-        ts_utils.goto_node(parent, true)
+    local next_node = ts_current_node:next_sibling()
+    if not next_node then
+        print("TS: No next sibling node")
         return
     end
-    ts_utils.goto_node(parent:next_sibling() or parent, true)
+    ts_util_set_node(next_node, ts_current_buffer, false)
 end
 
-local function ts_goto_next()
-    local node, jumped_forward = ts_get_node_at_cursor()
-    if not node then
+local function ts_node_prev()
+    if not ts_current_node or not ts_current_buffer then
+        print("TS: No current node set")
         return
     end
-    if jumped_forward then
+    local prev_node = ts_current_node:prev_sibling()
+    if not prev_node then
+        print("TS: No previous sibling node")
         return
     end
-    local parent = ts_get_parent_at_position(node)
-    ts_utils.goto_node(parent:next_sibling() or parent)
+    ts_util_set_node(prev_node, ts_current_buffer, false)
 end
 
-local function ts_goto_prev()
-    local node = ts_get_node_at_cursor()
-    if not node then
+local function ts_node_parent()
+    if not ts_current_node or not ts_current_buffer then
+        print("TS: No current node set")
         return
     end
-    local parent = ts_get_parent_at_position(node)
-    if not ts_cursor_at_node_start(parent) then
-        ts_utils.goto_node(parent)
+    local parent_node = ts_current_node:parent()
+    if not parent_node then
+        print("TS: No parent node")
         return
     end
-    ts_utils.goto_node(parent:prev_sibling() or parent)
+    ts_util_set_node(parent_node, ts_current_buffer, false)
 end
 
-vim.keymap.set("n", "<leader>tg", ts_goto_parent, {})
-vim.keymap.set("n", "<leader>te", ts_goto_end, {})
-vim.keymap.set("n", "<leader>tw", ts_goto_next, {})
-vim.keymap.set("n", "<leader>tb", ts_goto_prev, {})
+local function ts_node_child()
+    if not ts_current_node or not ts_current_buffer then
+        print("TS: No current node set")
+        return
+    end
+    local child_node = ts_current_node:child(0)
+    if not child_node then
+        print("TS: No child node")
+        return
+    end
+    ts_util_set_node(child_node, ts_current_buffer, false)
+end
+
+local function ts_node_start()
+    if not ts_current_node or not ts_current_buffer then
+        print("TS: No current node set")
+        return
+    end
+    ts_util_set_node(ts_current_node, ts_current_buffer, false)
+end
+
+local function ts_node_end()
+    if not ts_current_node or not ts_current_buffer then
+        print("TS: No current node set")
+        return
+    end
+    ts_util_set_node(ts_current_node, ts_current_buffer, true)
+end
+
+---@param fun function
+local function ts_jump_repeat(fun)
+    local count = vim.v.count1
+    vim.cmd("normal! m'")
+    for _ = 1, count do
+        fun()
+    end
+end
+
+vim.keymap.set("n", "<leader>tt", function () ts_node_set() end, {})
+vim.keymap.set("n", "<leader>tc", function () ts_node_clear() end, {})
+vim.keymap.set("n", "<leader>tn", function () ts_jump_repeat(ts_node_next) end, {})
+vim.keymap.set("n", "<leader>tp", function () ts_jump_repeat(ts_node_prev) end, {})
+vim.keymap.set("n", "<leader>to", function () ts_jump_repeat(ts_node_parent) end, {})
+vim.keymap.set("n", "<leader>ti", function () ts_jump_repeat(ts_node_child) end, {})
+vim.keymap.set("n", "<leader>ta", function () ts_jump_repeat(ts_node_start) end, {})
+vim.keymap.set("n", "<leader>te", function () ts_jump_repeat(ts_node_end) end, {})
 
 
 
