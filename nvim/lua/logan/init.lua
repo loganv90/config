@@ -161,26 +161,15 @@ vim.cmd("colorscheme gruvbox")
 
 
 
--- TODO when doing git_status, focus on the list item corresponding to the current file
--- TODO when doing git_diff, focus on the list item corresponding to the closest hunk to the cursor line
--- TODO when doing git_diff, add keymap to filter out staged hunks
--- TODO add visual mode binds for files and grep
 local snacks = require('snacks')
----@param file string
-local snacks_git_diff_hunks = function (file)
-    snacks.picker.git_diff({
-        pattern = file,
-    })
+local snacks_git_status = function ()
+    -- TODO focus on the list item corresponding to the current file
+    snacks.picker.git_status()
 end
-local snacks_git_diff_files = function ()
-    snacks.picker.git_status({
-        win = {
-            input = {
-                keys = {
-                    ["<S-Tab>"] = { "open_git_diff_hunks", mode = { "n", "i" } }
-                }
-            }
-        }
+local snacks_git_diff = function ()
+    -- TODO focus on the list item corresponding to the closest hunk to the cursor
+    snacks.picker.git_diff({
+        pattern = vim.fn.expand('%:.'),
     })
 end
 snacks.setup({
@@ -234,22 +223,6 @@ snacks.setup({
                 },
             },
         },
-        actions = {
-            open_git_diff_hunks = function(picker)
-                local item = picker:current()
-                if not item then
-                    return
-                end
-
-                local file = item.file
-                if not file then
-                    return
-                end
-
-                picker:close()
-                snacks_git_diff_hunks(file)
-            end,
-        },
     },
     -- To toggle live grep: ctrl-g
     -- To toggle preview: alt-p
@@ -261,8 +234,8 @@ snacks.setup({
 })
 vim.keymap.set('n', '<leader>sf', function () snacks.picker.files({ hidden = true }) end, {})
 vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
-vim.keymap.set('n', '<leader>ss', function () snacks_git_diff_files() end, {})
-vim.keymap.set('n', '<leader>sd', function () snacks_git_diff_hunks(vim.fn.expand('%:.')) end, {})
+vim.keymap.set('n', '<leader>ss', function () snacks_git_status() end, {})
+vim.keymap.set('n', '<leader>sd', function () snacks_git_diff() end, {})
 vim.keymap.set('n', '<leader>scg', function () snacks.picker.grep({ cwd = vim.fn.stdpath('config') }) end, {})
 vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
@@ -333,30 +306,8 @@ local function ts_util_set_node(node, buffer, ending)
     vim.api.nvim_win_set_cursor(0, ending and { end_row + 1, end_col - 1 } or { start_row + 1, start_col })
 end
 
----@return TSNode|nil, integer|nil
-local function ts_util_get_node_at_cursor()
-    while true do
-        local captures = vim.treesitter.get_captures_at_cursor()
-        if #captures > 0 then
-            break
-        end
-        vim.cmd("normal! W")
-        local current_row, current_col, last_row = vim.fn.line('.'), vim.fn.col('.'), vim.fn.line('$')
-        local last_col = vim.fn.col({last_row, '$'})
-        if current_row == last_row and current_col == last_col then
-            break
-        end
-    end
-    local node = ts_utils.get_node_at_cursor()
-    if not node then
-        return nil, nil
-    end
-    local bufnr = vim.api.nvim_get_current_buf()
-    return node, bufnr
-end
-
 local function ts_node_set()
-    local node, buffer = ts_util_get_node_at_cursor()
+    local node, buffer = ts_utils.get_node_at_cursor(), vim.api.nvim_get_current_buf()
     if not node or not buffer then
         print("TS: No node found at cursor")
         return
@@ -437,22 +388,32 @@ local function ts_node_end()
 end
 
 ---@param fun function
-local function ts_jump_repeat(fun)
-    local count = vim.v.count1
-    vim.cmd("normal! m'")
+---@param opts table?
+local function ts_jump_repeat(fun, opts)
+    local count
+    if opts and opts.no_count then
+        count = 1
+    else
+        count = vim.v.count1
+    end
+    if opts and opts.no_jump then
+        -- do nothing
+    else
+        vim.cmd("normal! m'")
+    end
     for _ = 1, count do
         fun()
     end
 end
 
-vim.keymap.set("n", "<leader>tt", function () ts_node_set() end, {})
-vim.keymap.set("n", "<leader>tc", function () ts_node_clear() end, {})
+vim.keymap.set("n", "<leader>tt", function () ts_jump_repeat(ts_node_set, { no_count = true }) end, {})
+vim.keymap.set("n", "<leader>tc", function () ts_jump_repeat(ts_node_clear, { no_jump = true }) end, {})
 vim.keymap.set("n", "<leader>tn", function () ts_jump_repeat(ts_node_next) end, {})
 vim.keymap.set("n", "<leader>tp", function () ts_jump_repeat(ts_node_prev) end, {})
 vim.keymap.set("n", "<leader>to", function () ts_jump_repeat(ts_node_parent) end, {})
 vim.keymap.set("n", "<leader>ti", function () ts_jump_repeat(ts_node_child) end, {})
-vim.keymap.set("n", "<leader>ta", function () ts_jump_repeat(ts_node_start) end, {})
-vim.keymap.set("n", "<leader>te", function () ts_jump_repeat(ts_node_end) end, {})
+vim.keymap.set("n", "<leader>ta", function () ts_jump_repeat(ts_node_start, { no_count = true }) end, {})
+vim.keymap.set("n", "<leader>te", function () ts_jump_repeat(ts_node_end, { no_count = true }) end, {})
 
 
 
@@ -467,13 +428,15 @@ vim.api.nvim_create_autocmd("LspAttach", {
         local bufnr = args.buf
         vim.keymap.set('n', '<leader>lr', function () snacks.picker.lsp_references() end, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>le', function () snacks.picker.diagnostics() end, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>la', vim.lsp.buf.code_action, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>ln', vim.lsp.buf.rename, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>lh', vim.lsp.buf.hover, { buffer = bufnr, remap = false })
-        vim.keymap.set('n', '<leader>lg', ':LuauLsp regenerate_sourcemap<CR>', { buffer = bufnr, remap = false})
-        vim.keymap.set('i', '<C-k>', vim.lsp.buf.signature_help, { buffer = bufnr, remap = false })
         vim.keymap.set('n', '<leader>lf', vim.diagnostic.open_float, { buffer = bufnr, remap = false })
+        vim.keymap.set('n', '<leader>lg', ':LuauLsp regenerate_sourcemap<CR>', { buffer = bufnr, remap = false})
     end,
+    -- To show hover: K
+    -- To show signature help: ctrl-s
+    -- To do code action: gra
+    -- To do rename: grn
+    -- To open type definition: grt
+    -- To open implementation: gri
 })
 
 vim.diagnostic.config({
