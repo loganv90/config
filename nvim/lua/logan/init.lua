@@ -162,14 +162,49 @@ vim.cmd("colorscheme gruvbox")
 
 
 local snacks = require('snacks')
-local snacks_git_status = function ()
-    -- TODO focus on the list item corresponding to the current file
-    snacks.picker.git_status()
+---@param relative_file_path string
+local snacks_git_status = function (relative_file_path)
+    snacks.picker.git_status({
+        on_show = function(picker)
+            local items = picker:items()
+            for _, item in ipairs(items) do
+                if item.file == relative_file_path then
+                    local row = picker.list:idx2row(item.idx)
+                    picker.list:view(row)
+                    return
+                end
+            end
+        end,
+    })
 end
-local snacks_git_diff = function ()
-    -- TODO focus on the list item corresponding to the closest hunk to the cursor
+---@param relative_file_path string
+---@param line_number integer
+local snacks_git_diff = function (relative_file_path, line_number)
     snacks.picker.git_diff({
-        pattern = vim.fn.expand('%:.'),
+        on_show = function(picker)
+            ---@type snacks.picker.Item|nil
+            local closest_item = nil
+            ---@type number|nil
+            local closest_distance = nil
+
+            local items = picker:items()
+            for _, item in ipairs(items) do
+                if item.file == relative_file_path then
+                    local item_line_number = item.pos[1]
+                    local distance = math.abs(line_number - item_line_number)
+
+                    if not closest_distance or (distance < closest_distance) then
+                        closest_item = item
+                        closest_distance = distance
+                    end
+                end
+            end
+
+            if closest_item then
+                local row = picker.list:idx2row(closest_item.idx)
+                picker.list:view(row)
+            end
+        end,
     })
 end
 snacks.setup({
@@ -214,13 +249,6 @@ snacks.setup({
         previewers = {
             diff = {
                 style = "syntax",
-                win = {
-                    input = {
-                        keys = {
-                            ["<c-n>"] = { function() print('this is my message') end, mode = { "i", "n" } },
-                        },
-                    },
-                },
             },
         },
     },
@@ -234,8 +262,8 @@ snacks.setup({
 })
 vim.keymap.set('n', '<leader>sf', function () snacks.picker.files({ hidden = true }) end, {})
 vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
-vim.keymap.set('n', '<leader>ss', function () snacks_git_status() end, {})
-vim.keymap.set('n', '<leader>sd', function () snacks_git_diff() end, {})
+vim.keymap.set('n', '<leader>ss', function () snacks_git_status(vim.fn.expand('%:.')) end, {})
+vim.keymap.set('n', '<leader>sd', function () snacks_git_diff(vim.fn.expand('%:.'), vim.fn.line('.')) end, {})
 vim.keymap.set('n', '<leader>scg', function () snacks.picker.grep({ cwd = vim.fn.stdpath('config') }) end, {})
 vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
