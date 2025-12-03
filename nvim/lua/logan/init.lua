@@ -115,7 +115,7 @@ require("lazy").setup({
             }
         }
     },
-    { 'nvim-neotest/nvim-nio' },
+
     { "ellisonleao/gruvbox.nvim" },
 
     {
@@ -558,4 +558,54 @@ blink_cmp.setup({
         implementation = "lua",
     },
 })
+
+
+
+
+
+-- https://github.com/{repo}/blob/{commit}/{path}
+-- git@github.com:{repo}.git
+---@param git_url string
+---@param git_commit string
+---@param relative_file_path string
+---@return boolean|nil
+local function git_open_github(git_url, git_commit, relative_file_path)
+    local repo = string.match(git_url, "^git@github%.com:(.*)%.git$")
+    if not repo then
+        return
+    end
+
+    local url = string.format("https://github.com/%s/blob/%s/%s", repo, git_commit, relative_file_path)
+    local open_obj = vim.system({"open", url}):wait()
+    if open_obj.code ~= 0 then
+        return
+    end
+
+    return true
+end
+
+local function git_open_provider()
+    local git_url_obj = vim.system({"git", "remote", "get-url", "origin"}):wait()
+    if git_url_obj.code ~= 0 then
+        print("Git: Unable to get remote URL")
+        return
+    end
+
+    local git_commit_obj = vim.system({"git", "rev-parse", "HEAD"}):wait()
+    if git_commit_obj.code ~= 0 then
+        print("Git: Unable to get current commit hash")
+        return
+    end
+
+    local git_url = vim.trim(git_url_obj.stdout)
+    local git_commit = vim.trim(git_commit_obj.stdout)
+    local relative_file_path = vim.fn.expand('%:.')
+
+    local github = git_open_github(git_url, git_commit, relative_file_path)
+    if github then
+        return
+    end
+end
+
+vim.keymap.set('n', '<leader>g', git_open_provider, {})
 
