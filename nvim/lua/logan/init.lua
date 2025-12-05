@@ -1,3 +1,5 @@
+-- To quit vim normally: ":q", ":qa", ":wq"
+-- To quit vim with an error code to abort git commands: ":cq"
 -- To see all startup messages from the config, ":messages"
 -- To re-source the config, ":source {path to config or % from init.lua}"
 -- To run some lua code visually select the code then do, ":source"
@@ -568,14 +570,16 @@ blink_cmp.setup({
 ---@param git_url string
 ---@param git_commit string
 ---@param relative_file_path string
+---@param line_number integer|nil
 ---@return boolean|nil
-local function git_open_github(git_url, git_commit, relative_file_path)
+local function git_open_github(git_url, git_commit, relative_file_path, line_number)
     local repo = string.match(git_url, "^git@github%.com:(.*)%.git$")
     if not repo then
         return
     end
 
-    local url = string.format("https://github.com/%s/blob/%s/%s", repo, git_commit, relative_file_path)
+    local line_suffix = line_number and string.format("#L%d", line_number) or ""
+    local url = string.format("https://github.com/%s/blob/%s/%s%s", repo, git_commit, relative_file_path, line_suffix)
     local open_obj = vim.system({"open", url}):wait()
     if open_obj.code ~= 0 then
         return
@@ -584,24 +588,107 @@ local function git_open_github(git_url, git_commit, relative_file_path)
     return true
 end
 
-local function git_open_provider()
+---@param relative_file_path string
+---@param commit string
+---@return integer|nil
+local function git_get_line(relative_file_path, commit)
+    local line_number = vim.fn.line('.')
+    local line_range = string.format("%d,%d", line_number, line_number)
+    local git_workspace_blame_obj = vim.system({"git", "blame", "-n", "-L", line_range, "--", relative_file_path}):wait()
+    if git_workspace_blame_obj.code ~= 0 then
+        return
+    end
+
+    local git_commit_blame_obj = vim.system({"git", "blame", "-n", commit, "--", relative_file_path}):wait()
+    if git_commit_blame_obj.code ~= 0 then
+        return
+    end
+
+    local git_workspace_blame = vim.trim(git_workspace_blame_obj.stdout)
+    local git_commit_blame = vim.trim(git_commit_blame_obj.stdout)
+
+    local original_commit_and_line = string.match(git_workspace_blame, "^(%w+%s+%d+)%s+")
+    if not original_commit_and_line then
+        return
+    end
+
+    local s = "\n" .. git_commit_blame
+    local pattern = "\n" .. original_commit_and_line .. "%s+%([%s%w%-%+:]+%s+(%d+)%)%s+"
+    local current_line = string.match(s, pattern)
+    if not current_line then
+        return
+    end
+
+    return tonumber(current_line)
+end
+
+---@return string|nil
+local function git_get_url()
     local git_url_obj = vim.system({"git", "remote", "get-url", "origin"}):wait()
     if git_url_obj.code ~= 0 then
+        return
+    end
+    return vim.trim(git_url_obj.stdout)
+end
+
+---@return string|nil
+local function git_get_commit()
+    local git_log_obj = vim.system({"git", "log", "--pretty=format:%H"}):wait()
+    if git_log_obj.code ~= 0 then
+        return
+    end
+
+    local git_log = vim.trim(git_log_obj.stdout)
+
+    local commit = nil
+    for hash in string.gmatch(git_log, "[^\r\n]+") do
+        local git_branch_obj = vim.system({"git", "branch", "-r", "--contains", hash}):wait()
+        if git_branch_obj.code == 0 then
+            local git_branch = vim.trim(git_branch_obj.stdout)
+            if #git_branch > 0 then
+                commit = hash
+                break
+            end
+        end
+    end
+
+    return commit
+end
+
+---@return string, boolean
+local function git_get_file()
+    local file_path = vim.fn.expand('%:.')
+    local f = io.open(file_path, "r")
+    if f == nil then
+        return file_path, false
+    end
+    io.close(f)
+    return file_path, true
+end
+
+local function git_open_provider()
+    local git_url = git_get_url()
+    if not git_url then
         print("Git: Unable to get remote URL")
         return
     end
 
-    local git_commit_obj = vim.system({"git", "rev-parse", "HEAD"}):wait()
-    if git_commit_obj.code ~= 0 then
-        print("Git: Unable to get current commit hash")
+    local git_commit = git_get_commit()
+    if not git_commit then
+        print("Git: Unable to get commit hash")
         return
     end
 
-    local git_url = vim.trim(git_url_obj.stdout)
-    local git_commit = vim.trim(git_commit_obj.stdout)
-    local relative_file_path = vim.fn.expand('%:.')
+    local relative_file_path, is_file = git_get_file()
+    local line_number = nil
+    if is_file then
+        line_number = git_get_line(relative_file_path, git_commit)
+        if not line_number then
+            print("Git: Unable to get line number")
+        end
+    end
 
-    local github = git_open_github(git_url, git_commit, relative_file_path)
+    local github = git_open_github(git_url, git_commit, relative_file_path, line_number)
     if github then
         return
     end
