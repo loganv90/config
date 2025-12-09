@@ -1,6 +1,7 @@
 -- To quit vim normally: ":q", ":qa", ":wq"
 -- To quit vim with an error code to abort git commands: ":cq"
--- To see all startup messages from the config, ":messages"
+-- To view messages which includes print statements and debug statements: ":messages", ":mes"
+-- To clear messages and to put messages content in the buffer: ":messages clear", ":mes clear", ":put =execute('messages')"
 -- To re-source the config, ":source {path to config or % from init.lua}"
 -- To run some lua code visually select the code then do, ":source"
 -- To see Mason installs, ":Mason"
@@ -14,6 +15,7 @@
 -- To use magic and case sensitivity in search, ":\v{pattern}", ":\V{pattern}", ":\C{pattern}", ":\c{pattern}"
 -- To see lua objects, ":lua =vim"
 -- To run lua code, ":lua print('what')"
+-- To run a lua file, ":luafile {path to lua file}"
 -- To refresh the buffer, ":e!"
 -- To move window to new tab, "<C-w>T"
 -- To use terminal: ":term", "i", "<C-\><C-n>"
@@ -45,6 +47,9 @@
 -- To execute the current file as bash script: ":!chmod +x %", ":!bash %:p"
 -- To diff files and use changes: ":windo diffthis", ":bufdo diffoff", "dp", "do"
 -- To sort lines of text: ":'<,'>sort"
+-- To make all windows the same size: "<C-w>="
+-- To set and reset the height of the current window: ":resize{number}", ":res{number}", ":res", "horizontal resize{number}", ":hor res{number}", ":hor res"
+-- To set and reset the width of the current window: ":vertical resize{number}", ":vert res{number}", ":vert res"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -594,12 +599,12 @@ end
 local function git_get_line(relative_file_path, commit)
     local line_number = vim.fn.line('.')
     local line_range = string.format("%d,%d", line_number, line_number)
-    local git_workspace_blame_obj = vim.system({"git", "blame", "-n", "-L", line_range, "--", relative_file_path}):wait()
+    local git_workspace_blame_obj = vim.system({"git", "blame", "-nf", "-L", line_range, "--", relative_file_path}):wait()
     if git_workspace_blame_obj.code ~= 0 then
         return
     end
 
-    local git_commit_blame_obj = vim.system({"git", "blame", "-n", commit, "--", relative_file_path}):wait()
+    local git_commit_blame_obj = vim.system({"git", "blame", "-nf", commit, "--", relative_file_path}):wait()
     if git_commit_blame_obj.code ~= 0 then
         return
     end
@@ -607,13 +612,13 @@ local function git_get_line(relative_file_path, commit)
     local git_workspace_blame = vim.trim(git_workspace_blame_obj.stdout)
     local git_commit_blame = vim.trim(git_commit_blame_obj.stdout)
 
-    local original_commit_and_line = string.match(git_workspace_blame, "^(%w+%s+%d+)%s+")
-    if not original_commit_and_line then
+    local original_commit, original_file, original_line = string.match(git_workspace_blame, "^(%S+)%s+(%S+)%s+(%S+)")
+    if not original_commit or not original_file or not original_line then
         return
     end
 
     local s = "\n" .. git_commit_blame
-    local pattern = "\n" .. original_commit_and_line .. "%s+%([%s%w%-%+:]+%s+(%d+)%)%s+"
+    local pattern = "\n" .. original_commit .. "%s+" .. original_file .. "%s+" .. original_line .. "%s+%(.-%s+(%d+)%)"
     local current_line = string.match(s, pattern)
     if not current_line then
         return
