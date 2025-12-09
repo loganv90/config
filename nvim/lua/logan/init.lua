@@ -594,12 +594,12 @@ end
 local function git_get_line(relative_file_path, commit)
     local line_number = vim.fn.line('.')
     local line_range = string.format("%d,%d", line_number, line_number)
-    local git_workspace_blame_obj = vim.system({"git", "blame", "-n", "-L", line_range, "--", relative_file_path}):wait()
+    local git_workspace_blame_obj = vim.system({"git", "blame", "-nf", "-L", line_range, "--", relative_file_path}):wait()
     if git_workspace_blame_obj.code ~= 0 then
         return
     end
 
-    local git_commit_blame_obj = vim.system({"git", "blame", "-n", commit, "--", relative_file_path}):wait()
+    local git_commit_blame_obj = vim.system({"git", "blame", "-nf", commit, "--", relative_file_path}):wait()
     if git_commit_blame_obj.code ~= 0 then
         return
     end
@@ -607,13 +607,13 @@ local function git_get_line(relative_file_path, commit)
     local git_workspace_blame = vim.trim(git_workspace_blame_obj.stdout)
     local git_commit_blame = vim.trim(git_commit_blame_obj.stdout)
 
-    local original_commit_and_line = string.match(git_workspace_blame, "^(%w+%s+%d+)%s+")
-    if not original_commit_and_line then
+    local original_commit, original_file, original_line = string.match(git_workspace_blame, "^(%S+)%s+(%S+)%s+(%S+)")
+    if not original_commit or not original_file or not original_line then
         return
     end
 
     local s = "\n" .. git_commit_blame
-    local pattern = "\n" .. original_commit_and_line .. "%s+%([%s%w%-%+:]+%s+(%d+)%)%s+"
+    local pattern = "\n" .. original_commit .. "%s+" .. original_file .. "%s+" .. original_line .. "%s+%(.-%s+(%d+)%)"
     local current_line = string.match(s, pattern)
     if not current_line then
         return
