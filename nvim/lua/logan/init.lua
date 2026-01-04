@@ -19,9 +19,9 @@
 -- To refresh the buffer, ":e!"
 -- To move window to new tab, "<C-w>T"
 -- To use terminal: ":term", "i", "<C-\><C-n>"
--- To use quickfix list: ":copen", ":cclose", ":cnext", ":cprev"
+-- To use quickfix list: ":copen", ":cclose", ":cnext", ":cprev", "[q", "]q"
 -- To use quickfix list history: ":chi", ":chistory", ":{number}chi"
--- To use location list: ":lopen", ":lclose", ":lnext", ":lprev"
+-- To use location list: ":lopen", ":lclose", ":lnext", ":lprev", "[l", "]l"
 -- To use quickfix list history: ":lhi", ":lhistory", ":{number}lhi"
 -- To use tag stack: "<C-]>", "<C-t>"
 -- To reset "C-u" and "C-d" scrolling distance, ":set scroll=0"
@@ -50,6 +50,7 @@
 -- To make all windows the same size: "<C-w>="
 -- To set and reset the height of the current window: ":resize{number}", ":res{number}", ":res", "horizontal resize{number}", ":hor res{number}", ":hor res"
 -- To set and reset the width of the current window: ":vertical resize{number}", ":vert res{number}", ":vert res"
+-- To set args to many files and to navigate args: ":args {file name or path with wildcards}", "[a", "]a"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
