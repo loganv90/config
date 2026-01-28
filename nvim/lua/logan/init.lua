@@ -272,8 +272,6 @@ vim.keymap.set('n', '<leader>sf', function () snacks.picker.files({ hidden = tru
 vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
 vim.keymap.set('n', '<leader>ss', function () snacks_git_status(vim.fn.expand('%:.')) end, {})
 vim.keymap.set('n', '<leader>sd', function () snacks_git_diff(vim.fn.expand('%:.'), vim.fn.line('.')) end, {})
-vim.keymap.set('n', '<leader>scg', function () snacks.picker.grep({ cwd = vim.fn.stdpath('config') }) end, {})
-vim.keymap.set('n', '<leader>spg', function () snacks.picker.grep({ cwd = vim.fs.joinpath(vim.fn.stdpath('data'), 'lazy') }) end, {})
 
 
 
@@ -483,43 +481,43 @@ vim.diagnostic.config({
 local capabilities = blink_cmp.get_lsp_capabilities()
 
 mason.setup()
+-- To install a language server with version: ":MasonInstall {language server}@{version}", ":MasonInstall lua-language-server@3.16.4"
+-- To view the mason's log: ":MasonLog"
 
 vim.lsp.config('ts_ls', {
     capabilities = capabilities,
     settings = {},
 })
+vim.lsp.enable('ts_ls')
+
 vim.lsp.config('gopls', {
     capabilities = capabilities,
     settings = {},
 })
+vim.lsp.enable('gopls')
+
 vim.lsp.config('pyright', {
     capabilities = capabilities,
     settings = {},
 })
+vim.lsp.enable('pyright')
+
 vim.lsp.config('lua_ls', {
     capabilities = capabilities,
-    settings = {
-        Lua = {
-            workspace = {
-                checkThirdParty = false,
-            },
-        },
-    },
+    settings = {},
 })
+vim.lsp.enable('lua_ls')
+
 vim.lsp.config('rust_analyzer', {
     capabilities = capabilities,
     settings = {},
 })
+vim.lsp.enable('rust_analyzer')
+
 vim.lsp.config('clangd', {
     capabilities = capabilities,
     settings = {},
 })
-
-vim.lsp.enable('ts_ls')
-vim.lsp.enable('gopls')
-vim.lsp.enable('pyright')
-vim.lsp.enable('lua_ls')
-vim.lsp.enable('rust_analyzer')
 vim.lsp.enable('clangd')
 
 luau_lsp.config({
