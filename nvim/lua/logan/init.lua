@@ -569,21 +569,21 @@ blink_cmp.setup({
 
 
 
--- https://github.com/{repo}/blob/{commit}/{path}
+-- https://github.com/{repo}/blame/{commit}/{path}
 -- git@github.com:{repo}.git
 ---@param git_url string
 ---@param git_commit string
----@param relative_file_path string
+---@param repo_file_path string
 ---@param line_number integer|nil
 ---@return boolean|nil
-local function git_open_github(git_url, git_commit, relative_file_path, line_number)
+local function git_open_github(git_url, git_commit, repo_file_path, line_number)
     local repo = string.match(git_url, "^git@github%.com:(.*)%.git$")
     if not repo then
         return
     end
 
     local line_suffix = line_number and string.format("#L%d", line_number) or ""
-    local url = string.format("https://github.com/%s/blob/%s/%s%s", repo, git_commit, relative_file_path, line_suffix)
+    local url = string.format("https://github.com/%s/blame/%s/%s%s", repo, git_commit, repo_file_path, line_suffix)
     local open_obj = vim.system({"open", url}):wait()
     if open_obj.code ~= 0 then
         return
@@ -659,15 +659,22 @@ local function git_get_commit()
     return commit
 end
 
----@return string, boolean
+---@return string|nil, string|nil, boolean
 local function git_get_file()
     local file_path = vim.fn.expand('%:.')
+    local git_path_obj = vim.system({"git", "ls-files", "--full-name", file_path}):wait()
+    if git_path_obj.code ~= 0 then
+        return nil, nil, false
+    end
+
+    local git_path = vim.trim(git_path_obj.stdout)
+
     local f = io.open(file_path, "r")
     if f == nil then
-        return file_path, false
+        return file_path, git_path, false
     end
     io.close(f)
-    return file_path, true
+    return file_path, git_path, true
 end
 
 local function git_open_provider()
@@ -683,7 +690,12 @@ local function git_open_provider()
         return
     end
 
-    local relative_file_path, is_file = git_get_file()
+    local relative_file_path, repo_file_path, is_file = git_get_file()
+    if not relative_file_path or not repo_file_path then
+        print("Git: Unable to get file path")
+        return
+    end
+
     local line_number = nil
     if is_file then
         line_number = git_get_line(relative_file_path, git_commit)
@@ -692,7 +704,7 @@ local function git_open_provider()
         end
     end
 
-    local github = git_open_github(git_url, git_commit, relative_file_path, line_number)
+    local github = git_open_github(git_url, git_commit, repo_file_path, line_number)
     if github then
         return
     end
