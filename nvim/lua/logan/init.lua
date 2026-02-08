@@ -259,6 +259,28 @@ snacks.setup({
                 style = "syntax",
             },
         },
+        sources = {
+            git_diff = {
+                win = {
+                    input = {
+                        keys = {
+                            ["<Tab>"] = { "select_and_next", mode = { "i", "n" } },
+                            ["<c-r>"] = false,
+                        },
+                    },
+                },
+            },
+            git_status = {
+                win = {
+                    input = {
+                        keys = {
+                            ["<Tab>"] = { "select_and_next", mode = { "i", "n" } },
+                            ["<c-r>"] = false,
+                        },
+                    },
+                },
+            },
+        },
     },
     -- To toggle live grep: ctrl-g
     -- To toggle preview: alt-p
