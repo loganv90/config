@@ -51,6 +51,7 @@
 -- To set and reset the height of the current window: ":resize{number}", ":res{number}", ":res", "horizontal resize{number}", ":hor res{number}", ":hor res"
 -- To set and reset the width of the current window: ":vertical resize{number}", ":vert res{number}", ":vert res"
 -- To set args to many files and to navigate args: ":args {file name or path with wildcards}", "[a", "]a"
+-- To set, unset, and view setting for fixing eol on save: ":set nofixeol", ":set fixeol", ":set nofixeol?", ":set fixeol?"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
