@@ -4,9 +4,11 @@
 -- To clear messages and to put messages content in the buffer: ":messages clear", ":mes clear", ":put =execute('messages')"
 -- To re-source the config, ":source {path to config or % from init.lua}"
 -- To run some lua code visually select the code then do, ":source"
--- To see Mason installs, ":Mason"
--- To see Lazy installs, ":Lazy"
--- To see LSP status, ":LspInfo"
+-- To see installed plugins, save to update plugins, ":lua vim.pack.update()"
+-- To remove installed plugin, ":lua vim.pack.del({'<plugin_name>'})"
+-- To see LSP status, ":checkhealth vim.lsp"
+-- To restart LSP, ":lsp restart"
+-- To stop LSP, ":lsp stop"
 -- To see Treesitter info at cursor, ":Inspect"
 -- To see all keymaps, ":h index"
 -- To run command, ":'<,'>norm {command}"
@@ -52,6 +54,8 @@
 -- To set and reset the width of the current window: ":vertical resize{number}", ":vert res{number}", ":vert res"
 -- To set args to many files and to navigate args: ":args {file name or path with wildcards}", "[a", "]a"
 -- To set, unset, and view setting for fixing eol on save: ":set nofixeol", ":set fixeol", ":set nofixeol?", ":set fixeol?"
+-- To select a treesitter node, and expand/shift selection by repeating the command ending: "van", "vin", "v[n", "v]n", "an", "in", "[n", "]n"
+-- To update treesitter parsers: ":TSUpdate"
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -98,59 +102,7 @@ vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
 
 
 
-local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not (vim.uv or vim.loop).fs_stat(lazypath) then
-    local lazyrepo = "https://github.com/folke/lazy.nvim.git"
-    local out = vim.fn.system({ "git", "clone", "--filter=blob:none", "--branch=stable", lazyrepo, lazypath })
-    if vim.v.shell_error ~= 0 then
-        vim.api.nvim_echo({
-            { "Failed to clone lazy.nvim:\n", "ErrorMsg" },
-            { out, "WarningMsg" },
-            { "\nPress any key to exit..." },
-        }, true, {})
-        vim.fn.getchar()
-        os.exit(1)
-    end
-end
-vim.opt.rtp:prepend(lazypath)
-
-require("lazy").setup({
-    {
-        'folke/lazydev.nvim',
-        ft = 'lua',
-        opts = {
-            library = {
-                { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-            }
-        }
-    },
-
-    { "ellisonleao/gruvbox.nvim" },
-
-    {
-        'folke/snacks.nvim',
-        priority = 1000,
-    },
-
-    {
-        'nvim-treesitter/nvim-treesitter',
-        build = ':TSUpdate',
-    },
-
-    { 'williamboman/mason.nvim' },
-    { 'neovim/nvim-lspconfig' },
-    { 'lopi-py/luau-lsp.nvim' },
-
-    { 'saghen/blink.cmp' },
-    { 'rafamadriz/friendly-snippets' },
-
-    { 'github/copilot.vim' },
-})
-
-
-
-
-
+vim.pack.add({ 'https://github.com/ellisonleao/gruvbox.nvim' })
 local gruvbox = require("gruvbox")
 gruvbox.setup({
     overrides = {
@@ -170,6 +122,7 @@ vim.cmd("colorscheme gruvbox")
 
 
 
+vim.pack.add({ 'https://github.com/folke/snacks.nvim' })
 local snacks = require('snacks')
 ---@param relative_file_path string
 local snacks_git_status = function (relative_file_path)
@@ -300,183 +253,43 @@ vim.keymap.set('n', '<leader>sd', function () snacks_git_diff(vim.fn.expand('%:.
 
 
 
-require'nvim-treesitter.configs'.setup({
-    ensure_installed = {
-        "c",
-        "cpp",
-        "lua",
-        "luau",
-        "vim",
-        "vimdoc",
-        "query",
-        "go",
-        "javascript",
-        "typescript",
-        "rust",
-        "html",
-        "css",
-        "tsx",
-        "json",
-        "python",
-    },
-    sync_install = false,
-    auto_install = false,
-    highlight = {
-        enable = true,
-    },
+vim.pack.add({ 'https://github.com/nvim-treesitter/nvim-treesitter' })
+local ts = require('nvim-treesitter')
+ts.install({
+    "c",
+    "cpp",
+    "lua",
+    "luau",
+    "vim",
+    "vimdoc",
+    "query",
+    "go",
+    "javascript",
+    "typescript",
+    "rust",
+    "html",
+    "css",
+    "tsx",
+    "json",
+    "python",
 })
 
-local ts_utils = require("nvim-treesitter.ts_utils")
-
----@type TSNode|nil
-local ts_current_node = nil
----@type integer|nil
-local ts_current_buffer = nil
----@type integer
-local ts_ns_id = vim.api.nvim_create_namespace("ts_current_node_highlights")
-
-local function ts_util_clear_node()
-    if ts_current_buffer then
-        vim.api.nvim_buf_clear_namespace(ts_current_buffer, ts_ns_id, 0, -1)
-    end
-end
-
----@param node TSNode
----@param buffer integer
----@param ending boolean
-local function ts_util_set_node(node, buffer, ending)
-    ts_util_clear_node()
-    ts_current_node, ts_current_buffer = node, buffer
-    local start_row, start_col, end_row, end_col = node:range()
-    vim.api.nvim_buf_set_extmark(
-        buffer,
-        ts_ns_id,
-        start_row,
-        start_col,
-        {
-            end_line = end_row,
-            end_col = end_col,
-            hl_group = "Visual",
-        }
-    )
-    vim.api.nvim_win_set_buf(0, buffer)
-    vim.api.nvim_win_set_cursor(0, ending and { end_row + 1, end_col - 1 } or { start_row + 1, start_col })
-end
-
-local function ts_node_set()
-    local node, buffer = ts_utils.get_node_at_cursor(), vim.api.nvim_get_current_buf()
-    if not node or not buffer then
-        print("TS: No node found at cursor")
-        return
-    end
-    ts_util_set_node(node, buffer, false)
-end
-
-local function ts_node_clear()
-    ts_util_clear_node()
-end
-
-local function ts_node_next()
-    if not ts_current_node or not ts_current_buffer then
-        print("TS: No current node set")
-        return
-    end
-    local next_node = ts_current_node:next_sibling()
-    if not next_node then
-        print("TS: No next sibling node")
-        return
-    end
-    ts_util_set_node(next_node, ts_current_buffer, false)
-end
-
-local function ts_node_prev()
-    if not ts_current_node or not ts_current_buffer then
-        print("TS: No current node set")
-        return
-    end
-    local prev_node = ts_current_node:prev_sibling()
-    if not prev_node then
-        print("TS: No previous sibling node")
-        return
-    end
-    ts_util_set_node(prev_node, ts_current_buffer, false)
-end
-
-local function ts_node_parent()
-    if not ts_current_node or not ts_current_buffer then
-        print("TS: No current node set")
-        return
-    end
-    local parent_node = ts_current_node:parent()
-    if not parent_node then
-        print("TS: No parent node")
-        return
-    end
-    ts_util_set_node(parent_node, ts_current_buffer, false)
-end
-
-local function ts_node_child()
-    if not ts_current_node or not ts_current_buffer then
-        print("TS: No current node set")
-        return
-    end
-    local child_node = ts_current_node:child(0)
-    if not child_node then
-        print("TS: No child node")
-        return
-    end
-    ts_util_set_node(child_node, ts_current_buffer, false)
-end
-
-local function ts_node_start()
-    if not ts_current_node or not ts_current_buffer then
-        print("TS: No current node set")
-        return
-    end
-    ts_util_set_node(ts_current_node, ts_current_buffer, false)
-end
-
-local function ts_node_end()
-    if not ts_current_node or not ts_current_buffer then
-        print("TS: No current node set")
-        return
-    end
-    ts_util_set_node(ts_current_node, ts_current_buffer, true)
-end
-
----@param fun function
----@param opts table?
-local function ts_jump_repeat(fun, opts)
-    local count
-    if opts and opts.no_count then
-        count = 1
-    else
-        count = vim.v.count1
-    end
-    if opts and opts.no_jump then
-        -- do nothing
-    else
-        vim.cmd("normal! m'")
-    end
-    for _ = 1, count do
-        fun()
-    end
-end
-
-vim.keymap.set("n", "<leader>tt", function () ts_jump_repeat(ts_node_set, { no_count = true }) end, {})
-vim.keymap.set("n", "<leader>tc", function () ts_jump_repeat(ts_node_clear, { no_jump = true }) end, {})
-vim.keymap.set("n", "<leader>tn", function () ts_jump_repeat(ts_node_next) end, {})
-vim.keymap.set("n", "<leader>tp", function () ts_jump_repeat(ts_node_prev) end, {})
-vim.keymap.set("n", "<leader>to", function () ts_jump_repeat(ts_node_parent) end, {})
-vim.keymap.set("n", "<leader>ti", function () ts_jump_repeat(ts_node_child) end, {})
-vim.keymap.set("n", "<leader>ta", function () ts_jump_repeat(ts_node_start, { no_count = true }) end, {})
-vim.keymap.set("n", "<leader>te", function () ts_jump_repeat(ts_node_end, { no_count = true }) end, {})
 
 
 
 
+vim.pack.add({ 'https://github.com/folke/lazydev.nvim' })
+local lazydev = require('lazydev')
+lazydev.setup({
+    library = {
+        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
+    }
+})
 
-local mason = require('mason')
+vim.pack.add({ 'https://github.com/neovim/nvim-lspconfig' })
+vim.pack.add({ 'https://github.com/lopi-py/luau-lsp.nvim' })
+vim.pack.add({ 'https://github.com/saghen/blink.cmp' })
+
 local luau_lsp = require('luau-lsp')
 local blink_cmp = require('blink.cmp')
 
@@ -503,10 +316,6 @@ vim.diagnostic.config({
 
 local capabilities = blink_cmp.get_lsp_capabilities()
 
-mason.setup()
--- To install a language server with version: ":MasonInstall {language server}@{version}", ":MasonInstall lua-language-server@3.16.4"
--- To view the mason's log: ":MasonLog"
-
 vim.lsp.config('ts_ls', {
     capabilities = capabilities,
     settings = {},
@@ -525,6 +334,7 @@ vim.lsp.config('pyright', {
 })
 vim.lsp.enable('pyright')
 
+-- install lua-language-server with mise
 vim.lsp.config('lua_ls', {
     capabilities = capabilities,
     settings = {},
@@ -543,6 +353,7 @@ vim.lsp.config('clangd', {
 })
 vim.lsp.enable('clangd')
 
+-- install luau-lsp with aftman
 luau_lsp.config({
     capabilities = {
         workspace = {

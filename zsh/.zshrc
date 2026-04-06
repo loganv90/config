@@ -5,3 +5,5 @@ stty stop ^T  # free up ^S so it can be used to forward search
 alias ga="git add -p" # git add interactive
 alias gr="git restore -p" # git restore interactive
 
+eval "$(mise activate zsh)" # setup mise
+
