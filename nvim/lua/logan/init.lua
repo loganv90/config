@@ -102,7 +102,20 @@ vim.keymap.set("n", "+", "<CMD>tab split<CR>", {})
 
 
 
-vim.pack.add({ 'https://github.com/ellisonleao/gruvbox.nvim' })
+vim.pack.add({
+    { src='https://github.com/ellisonleao/gruvbox.nvim' },
+    { src='https://github.com/folke/snacks.nvim' },
+    { src='https://github.com/nvim-treesitter/nvim-treesitter' },
+    { src='https://github.com/folke/lazydev.nvim' },
+    { src='https://github.com/neovim/nvim-lspconfig' },
+    { src='https://github.com/lopi-py/luau-lsp.nvim' },
+    { src='https://github.com/saghen/blink.cmp' },
+})
+
+
+
+
+
 local gruvbox = require("gruvbox")
 gruvbox.setup({
     overrides = {
@@ -122,7 +135,6 @@ vim.cmd("colorscheme gruvbox")
 
 
 
-vim.pack.add({ 'https://github.com/folke/snacks.nvim' })
 local snacks = require('snacks')
 ---@param relative_file_path string
 local snacks_git_status = function (relative_file_path)
@@ -253,7 +265,6 @@ vim.keymap.set('n', '<leader>sd', function () snacks_git_diff(vim.fn.expand('%:.
 
 
 
-vim.pack.add({ 'https://github.com/nvim-treesitter/nvim-treesitter' })
 local ts = require('nvim-treesitter')
 ts.install({
     "c",
@@ -278,17 +289,12 @@ ts.install({
 
 
 
-vim.pack.add({ 'https://github.com/folke/lazydev.nvim' })
 local lazydev = require('lazydev')
 lazydev.setup({
     library = {
         { path = "${3rd}/luv/library", words = { "vim%.uv" } },
     }
 })
-
-vim.pack.add({ 'https://github.com/neovim/nvim-lspconfig' })
-vim.pack.add({ 'https://github.com/lopi-py/luau-lsp.nvim' })
-vim.pack.add({ 'https://github.com/saghen/blink.cmp' })
 
 local luau_lsp = require('luau-lsp')
 local blink_cmp = require('blink.cmp')
@@ -353,7 +359,7 @@ vim.lsp.config('clangd', {
 })
 vim.lsp.enable('clangd')
 
--- install luau-lsp with aftman
+-- install luau-lsp with rokit
 luau_lsp.config({
     capabilities = {
         workspace = {
