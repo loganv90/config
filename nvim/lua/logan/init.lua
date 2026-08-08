@@ -37,8 +37,8 @@
 -- To paste from registers in insert mode, and use expression register: "<C-r>{register}", "<C-r>="
 -- To record macros, and clear recorded macros: "q{register}{recording}q", "q{register}q"
 -- To set and jump to marks: "m{mark}", "'{mark}", "`{mark}"
--- To open the link under the cursor in a browser: "gx"
--- To open the file path under the cursor: "gf", "<C-w>f", "<C-w>gf"
+-- To open the link under the cursor in a browser (use norm to open multiple links): "gx"
+-- To open the file path under the cursor (use norm to open mulitple files): "gf", "<C-w>f", "<C-w>gf"
 -- To view undo branches: ":undol", ":undolist"
 -- To jump to an undo branch: ":undo {number}"
 -- To get a list of recent buffers: ":ls", ":ls t"
@@ -56,6 +56,14 @@
 -- To set, unset, and view setting for fixing eol on save: ":set nofixeol", ":set fixeol", ":set nofixeol?", ":set fixeol?"
 -- To select a treesitter node, and expand/shift selection by repeating the command ending: "van", "vin", "v[n", "v]n", "an", "in", "[n", "]n"
 -- To update treesitter parsers: ":TSUpdate"
+-- Imporant registers:
+-- - /: last search
+-- - ": last yank/delete/cut
+-- - +: system clipboard
+-- - 0: last yank
+-- Important marks:
+-- - a-z: local file
+-- - A-Z: global
 
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -145,6 +153,7 @@ local snacks_git_status = function (relative_file_path)
                 if item.file == relative_file_path then
                     local row = picker.list:idx2row(item.idx)
                     picker.list:view(row)
+                    snacks.picker.actions.list_scroll_center(picker)
                     return
                 end
             end
@@ -177,7 +186,98 @@ local snacks_git_diff = function (relative_file_path, line_number)
             if closest_item then
                 local row = picker.list:idx2row(closest_item.idx)
                 picker.list:view(row)
+                snacks.picker.actions.list_scroll_center(picker)
             end
+        end,
+    })
+end
+local function snacks_markdown_toc()
+    local buf = vim.api.nvim_get_current_buf()
+    local cursor_line = vim.fn.line('.')
+    -- default csv syntax column colors (wraps around)
+    local column_hl = {
+        -- uncolored
+        false,
+        "Statement",
+        "Constant",
+        "Type",
+        "PreProc",
+        "Identifier",
+        "Special",
+        "String",
+        "Comment",
+    }
+    snacks.picker({
+        title = "Headings",
+        format = function (item)
+            local ret = {}
+            for i, seg in ipairs(item.segments) do
+                if i > 1 then
+                    ret[#ret + 1] = { " > ", "Comment" }
+                end
+                local hl = column_hl[(i - 1) % #column_hl + 1]
+                if hl then
+                    ret[#ret + 1] = { seg.text, hl }
+                else
+                    ret[#ret + 1] = { seg.text }
+                end
+            end
+            return ret
+        end,
+        on_show = function (picker)
+            ---@type snacks.picker.Item|nil
+            local closest_item = nil
+            for _, item in ipairs(picker:items()) do
+                if item.pos[1] <= cursor_line then
+                    if not closest_item or item.pos[1] > closest_item.pos[1] then
+                        closest_item = item
+                    end
+                end
+            end
+            if not closest_item then
+                closest_item = picker:items()[1]
+            end
+            if closest_item then
+                local row = picker.list:idx2row(closest_item.idx)
+                picker.list:view(row)
+                snacks.picker.actions.list_scroll_center(picker)
+            end
+        end,
+        finder = function ()
+            local items = {}
+            local stack = {}
+            local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+            local in_fence = false
+            for l, line in ipairs(lines) do
+                if line:match("^%s*```") then
+                    in_fence = not in_fence
+                elseif not in_fence then
+                    local hashes, text = line:match("^(#+)%s+(.+)$")
+                    if hashes and #hashes <= 6 then
+                        local level = #hashes
+                        while #stack > 0 and stack[#stack].level >= level do
+                            table.remove(stack)
+                        end
+                        local segments = {}
+                        for _, h in ipairs(stack) do
+                            segments[#segments + 1] = { text = h.text, level = h.level }
+                        end
+                        segments[#segments + 1] = { text = text, level = level }
+                        local parts = {}
+                        for _, seg in ipairs(segments) do
+                            parts[#parts + 1] = seg.text
+                        end
+                        items[#items + 1] = {
+                            buf = buf,
+                            text = table.concat(parts, " > "),
+                            segments = segments,
+                            pos = { l, 0 },
+                        }
+                        stack[#stack + 1] = { level = level, text = text }
+                    end
+                end
+            end
+            return items
         end,
     })
 end
@@ -260,6 +360,7 @@ vim.keymap.set('n', '<leader>sf', function () snacks.picker.files({ hidden = tru
 vim.keymap.set('n', '<leader>sg', function () snacks.picker.grep() end, {})
 vim.keymap.set('n', '<leader>ss', function () snacks_git_status(vim.fn.expand('%:.')) end, {})
 vim.keymap.set('n', '<leader>sd', function () snacks_git_diff(vim.fn.expand('%:.'), vim.fn.line('.')) end, {})
+vim.keymap.set('n', '<leader>sh', function () snacks_markdown_toc() end, {})
 
 
 
@@ -268,12 +369,14 @@ vim.keymap.set('n', '<leader>sd', function () snacks_git_diff(vim.fn.expand('%:.
 local ts = require('nvim-treesitter')
 ts.install({
     "c",
-    "cpp",
     "lua",
-    "luau",
+    "markdown",
+    "markdown_inline",
     "vim",
     "vimdoc",
     "query",
+    "cpp",
+    "luau",
     "go",
     "javascript",
     "typescript",
