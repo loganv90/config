@@ -10,6 +10,7 @@ prerequisites:
 - mise
 - rg
 - fd
+- fzf
 - tree-sitter-cli
 
 installation:

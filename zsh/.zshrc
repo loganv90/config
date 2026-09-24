@@ -11,3 +11,6 @@ alias gr="git restore -p" # git restore interactive
 
 eval "$(mise activate zsh)" # setup mise
 
+SCRIPT_DIR="${0:a:h}"
+alias project="$SCRIPT_DIR/../scripts/cli-open_project.sh"
+
