@@ -117,6 +117,7 @@ vim.pack.add({
     { src='https://github.com/folke/lazydev.nvim' },
     { src='https://github.com/neovim/nvim-lspconfig' },
     { src='https://github.com/lopi-py/luau-lsp.nvim' },
+    { src='https://github.com/saghen/blink.lib' },
     { src='https://github.com/saghen/blink.cmp' },
 })
 
