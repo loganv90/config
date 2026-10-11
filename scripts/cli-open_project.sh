@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-roots=("$HOME/Documents/repos")
+roots=("$HOME/Documents/repos" "$HOME/.local/share/nvim/site/pack")
 
 selected=$(
     fd --min-depth 1 --max-depth 1 --type d --absolute-path . "${roots[@]}" \

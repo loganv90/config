@@ -93,7 +93,6 @@ vim.opt.hlsearch = true
 
 vim.opt.scrolloff = 4
 vim.opt.termguicolors = true
-vim.opt.signcolumn = 'yes'
 vim.opt.updatetime = 80
 
 vim.opt.completeopt = 'menu,menuone,preview'
@@ -126,18 +125,7 @@ vim.pack.add({
 
 
 local gruvbox = require("gruvbox")
-gruvbox.setup({
-    overrides = {
-        SignColumn = { bg = gruvbox.palette.dark0 },
-        GruvboxRedSign = { bg = gruvbox.palette.dark0 },
-        GruvboxGreenSign = { bg = gruvbox.palette.dark0 },
-        GruvboxYellowSign = { bg = gruvbox.palette.dark0 },
-        GruvboxBlueSign = { bg = gruvbox.palette.dark0 },
-        GruvboxPurpleSign = { bg = gruvbox.palette.dark0 },
-        GruvboxAquaSign = { bg = gruvbox.palette.dark0 },
-        GruvboxOrangeSign = { bg = gruvbox.palette.dark0 },
-    },
-})
+gruvbox.setup()
 vim.cmd("colorscheme gruvbox")
 
 
@@ -283,6 +271,7 @@ local function snacks_markdown_toc()
     })
 end
 snacks.setup({
+    image = {},
     picker = {
         prompt = "> ",
         win = {
@@ -420,8 +409,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
 })
 
 vim.diagnostic.config({
-    virtual_text = true,
-    virtual_lines = false,
+    signs = false,
+    virtual_lines = true,
 })
 
 local capabilities = blink_cmp.get_lsp_capabilities()
@@ -444,7 +433,6 @@ vim.lsp.config('pyright', {
 })
 vim.lsp.enable('pyright')
 
--- install lua-language-server with mise
 vim.lsp.config('lua_ls', {
     capabilities = capabilities,
     settings = {},
@@ -463,7 +451,6 @@ vim.lsp.config('clangd', {
 })
 vim.lsp.enable('clangd')
 
--- install luau-lsp with rokit
 luau_lsp.config({
     capabilities = {
         workspace = {

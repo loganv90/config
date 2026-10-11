@@ -1,0 +1,10 @@
+font-family = Menlo
+font-style = Regular
+font-size = 14
+
+copy-on-select = clipboard
+macos-option-as-alt = true
+
+cursor-color = cell-foreground
+cursor-text = cell-background
+

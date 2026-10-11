@@ -2,6 +2,7 @@
 
 includes config files for:
 - alacritty
+- ghostty
 - tmux
 - nvim
 - zsh
@@ -11,12 +12,14 @@ prerequisites:
 - rg
 - fd
 - fzf
+- imagemagick
 - tree-sitter-cli
 
 installation:
 - ln -s pathToRepo/nvim ~/.config/nvim
 - ln -s pathToRepo/tmux ~/.config/tmux
 - ln -s pathToRepo/alacritty ~/.config/alacritty
+- ln -s pathToRepo/ghostty ~/.config/ghostty
 - source pathToRepo/zsh/.zshrc
 
 # apps
@@ -35,8 +38,15 @@ This can be fixed by deleting the binaries from "~/.rokit/bin", and by re-instal
 
 This is where I should install the following:
 - lua-language-server
+- node
+
+## npm
+
+This is where I should install the following:
+- mermaid-cli
 
 ## cursor cli
 
+Settings:
 - vim mode: on
 

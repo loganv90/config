@@ -10,6 +10,7 @@ save_to_clipboard = true
 
 [window]
 option_as_alt = "Both"
+startup_mode = "Maximized"
 
 # The following fixes ctrl-/ on macOS with Alacritty, but we can alternatively use ctrl-_ or ctrl--:
 # [keyboard]
