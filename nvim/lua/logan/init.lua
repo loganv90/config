@@ -83,7 +83,6 @@ vim.opt.listchars = {
 }
 
 vim.opt.cursorline = true
-vim.opt.guicursor = "n-v-c-ci-sm:block,i-ve:ver25,r-cr-o:hor20"
 
 vim.opt.wrap = true
 vim.opt.breakindent = true
@@ -271,7 +270,6 @@ local function snacks_markdown_toc()
     })
 end
 snacks.setup({
-    image = {},
     picker = {
         prompt = "> ",
         win = {
