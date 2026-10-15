@@ -2,7 +2,6 @@
 
 includes config files for:
 - alacritty
-- ghostty
 - tmux
 - nvim
 - zsh
@@ -12,15 +11,16 @@ prerequisites:
 - rg
 - fd
 - fzf
-- imagemagick
 - tree-sitter-cli
 
 installation:
-- ln -s pathToRepo/nvim ~/.config/nvim
-- ln -s pathToRepo/tmux ~/.config/tmux
-- ln -s pathToRepo/alacritty ~/.config/alacritty
-- ln -s pathToRepo/ghostty ~/.config/ghostty
-- source pathToRepo/zsh/.zshrc
+- download `alacritty.dmg` and `alacritty.info`
+- run `ln -s <path_to_repo>/nvim ~/.config/nvim`
+- run `ln -s <path_to_repo>/tmux ~/.config/tmux`
+- run `ln -s <path_to_repo>/alacritty ~/.config/alacritty`
+- add this to main `~/.zshrc`: `source <path_to_repo>/zsh/.zshrc`
+- run `tic -xe alacritty,alacritty-direct alacritty.info`
+- run `infocmp alacritty` to verify alacritty installation
 
 # apps
 
@@ -39,11 +39,6 @@ This can be fixed by deleting the binaries from "~/.rokit/bin", and by re-instal
 This is where I should install the following:
 - lua-language-server
 - node
-
-## npm
-
-This is where I should install the following:
-- mermaid-cli
 
 ## cursor cli
 
