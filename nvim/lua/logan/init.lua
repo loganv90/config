@@ -408,7 +408,8 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
 vim.diagnostic.config({
     signs = false,
-    virtual_lines = true,
+    virtual_lines = false,
+    virtual_text = true,
 })
 
 local capabilities = blink_cmp.get_lsp_capabilities()

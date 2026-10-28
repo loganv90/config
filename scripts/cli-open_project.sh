@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-roots=("$HOME/Documents/repos" "$HOME/.local/share/nvim/site/pack")
+# Roots offer each immediate subdirectory; projects offer the directory itself.
+roots=("$HOME/Documents/repos")
+projects=("$HOME/.local/share/nvim/site/pack")
+
+candidates() {
+    fd --min-depth 1 --max-depth 1 --type d --absolute-path . "${roots[@]}"
+    for p in "${projects[@]}"; do
+        if [ -d "$p" ]; then printf '%s\n' "$p"; fi
+    done
+}
 
 selected=$(
-    fd --min-depth 1 --max-depth 1 --type d --absolute-path . "${roots[@]}" \
+    candidates \
         | awk '{
               line=$0; sub(/\/$/,"",line)
               n=split(line, p, "/"); base=p[n]
