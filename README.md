@@ -40,6 +40,12 @@ This is where I should install the following:
 - lua-language-server
 - node
 
+## alfred
+
+Settings:
+- set alfred keybind to cmd+space
+- set spotlight keybind to opt+cmd+space
+
 ## cursor cli
 
 Settings:
