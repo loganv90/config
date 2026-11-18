@@ -27,6 +27,7 @@
 -- To use quickfix list history: ":lhi", ":lhistory", ":{number}lhi"
 -- To use tag stack: "<C-]>", "<C-t>"
 -- To reset "C-u" and "C-d" scrolling distance, ":set scroll=0"
+-- To scroll horizontally: "zh", "zl", "zH", "zL"
 -- To remove search highlight: ":nohl", "<C-l>"
 -- To move between words: "w", "W", "b", "B", "e", "E", "ge", "gE"
 -- To edit command-line command in command-line window: "<C-f>"
@@ -65,7 +66,6 @@
 -- - a-z: local file
 -- - A-Z: global
 
-vim.opt.number = true
 vim.opt.relativenumber = true
 
 vim.opt.tabstop = 4
@@ -272,9 +272,18 @@ end
 snacks.setup({
     picker = {
         prompt = "> ",
+        actions = {
+            toggle_full_path = function(picker)
+                local file = picker.opts.formatters.file
+                file.min_width = file.min_width == 1000 and 40 or 1000
+                picker.list.dirty = true
+                picker.list:render()
+            end,
+        },
         win = {
             input = {
                 keys = {
+                    ["<a-g>"] = { "toggle_full_path", mode = { "i", "n" } },
                     ["<c-n>"] = { "history_forward", mode = { "i", "n" } },
                     ["<c-p>"] = { "history_back", mode = { "i", "n" } },
                     ["<c-u>"] = { "preview_scroll_up", mode = { "i", "n" } },
@@ -339,6 +348,7 @@ snacks.setup({
     -- To toggle live grep: ctrl-g
     -- To toggle preview: alt-p
     -- To toggle help: ?
+    -- To switch focus: /
     -- To open in new tab: ctrl-t
     -- To open in split: ctrl-s
     -- To open in vsplit: ctrl-v
